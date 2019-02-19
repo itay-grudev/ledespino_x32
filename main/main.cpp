@@ -13,13 +13,13 @@
 #include <esp_log.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
-#include <esp_http_server.h>
 
 extern "C" {
     void app_main(void);
 }
 
 #include "constants.hpp"
+#include "http_response_handlers.hpp"
 
 // API call return code. Global for convinience only.
 esp_err_t err;
@@ -34,7 +34,7 @@ nvs_handle system_nvs;
 nvs_handle led_nvs;
 
 // Effect stages
-int mode = 0;
+uint8_t mode = 0;
 
 // Front End Initial colours
 const char white[3]  = {255, 255, 255};
@@ -45,76 +45,6 @@ const char red[3] = {255, 0, 66};
 const char teal[3] = {0, 128, 128};
 const char lilac[3] = {128, 0, 128};
 const char orange[3] = {255, 127, 0};
-
-/**
- * GET /
- * Root path response handler
- */
-esp_err_t http_root_handler( httpd_req_t *req )
-{
-    ESP_LOGI( "HTTPD", "/" );
-    extern const unsigned char index_start[] asm( "_binary_index_html_start" );
-    extern const unsigned char index_end[]   asm( "_binary_index_html_end" );
-    const size_t index_size = (index_end - index_start);
-    httpd_resp_set_type( req, "text/html" );
-    httpd_resp_send( req, (char *)index_start, index_size );
-    return ESP_OK;
-}
-httpd_uri http_root_uri = {
-    "/",
-    HTTP_GET,
-    http_root_handler,
-    NULL
-};
-
-/**
- * GET /status
- * Status path response handler
- */
-const char json[] = "{\"a\": \"%d\", \"c\": [\"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\"], \"m\": \"%d\", \"n\": \"%s\", \"s\": \"%s\", \"w\": \"%d\"}";
-esp_err_t http_status_handler( httpd_req_t *req )
-{
-    ESP_LOGI( "HTTPD", "/status" );
-
-    char temp[sizeof(json) + 8 * 6 + 129];
-
-    // Currently active color
-    uint8_t a;
-    err = nvs_get_u8( led_nvs, "a", &a );
-    ESP_ERROR_CHECK( err );
-
-    // Stores the colours loaded from NVS
-    uint8_t c[8][3];
-
-    // Get colours from NVS
-    size_t rgb_size;
-    char key[2] = "0";
-    for( uint8_t i = 0; i < 8; ++i ){
-        key[0] = (char)(i + 48);
-        err = nvs_get_blob( led_nvs, key, &c[i], &rgb_size );
-        ESP_ERROR_CHECK( err );
-    }
-
-    // Load the device name from NVS
-    size_t device_name_length;
-    err = nvs_get_str( led_nvs, "device_name", NULL, &device_name_length );
-    ESP_ERROR_CHECK( err );
-    char *device_name = (char*)malloc( device_name_length );
-    err = nvs_get_str( led_nvs, "device_name", device_name, &device_name_length );
-    ESP_ERROR_CHECK( err );
-
-    snprintf( temp, sizeof(json) + 8 * 6 + 129, json, a, c[0][0], c[0][1], c[0][2], c[1][0], c[1][1], c[1][2], c[2][0], c[2][1], c[2][2], c[3][0], c[3][1], c[3][2], c[4][0], c[4][1], c[4][2], c[5][0], c[5][1], c[5][2], c[6][0], c[6][1], c[6][2], c[7][0], c[7][1], c[7][2], mode, device_name, wifi_config.sta.ssid, 1);
-
-    httpd_resp_set_type( req, "text/json" );
-    httpd_resp_sendstr( req, temp );
-    return ESP_OK;
-}
-httpd_uri http_status_uri = {
-    "/status",
-    HTTP_GET,
-    http_status_handler,
-    NULL
-};
 
 httpd_handle_t start_webserver()
 {
@@ -129,7 +59,7 @@ httpd_handle_t start_webserver()
             ESP_LOGI( "SYS", "Registering URI handlers" );
             httpd_register_uri_handler( server, &http_root_uri );
             httpd_register_uri_handler( server, &http_status_uri );
-            // httpd_register_uri_handler( server, &http_set_uri ); // TODO:
+            httpd_register_uri_handler( server, &http_set_uri );
             return server;
     }
 
