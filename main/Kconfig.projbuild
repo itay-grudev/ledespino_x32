@@ -1,33 +1,51 @@
 menu "Ledespino Configuration"
 
-  menu "WiFi"
-    config WIFI_SSID
-      string "WiFi SSID"
-      default "Ledespino"
-      help
-        SSID (network name) for the example to connect to.
+    menu "WiFi"
 
-    config WIFI_PASSWORD
-      string "WiFi Password"
-      default "lettherebelight"
-      help
-        WiFi password (WPA or WPA2) for the example to use.
+        choice DEFAULT_WIFI_MODE
+            prompt "Default WiFi Mode: AP or STA"
+            default DEFAULT_WIFI_MODE_AP
+            help
+                Whether to create a network by default or connect to an existing one.
+                Useful for debugging purposes.
 
-        Can be left blank if the network has no security set.
-  endmenu
+            config DEFAULT_WIFI_MODE_AP
+                bool "Access Point"
+                help
+                    Create an AP with the specified SSID and password.
+            config DEFAULT_WIFI_MODE_STA
+                bool "Station"
+                help
+                    Connect to an existing AP with the specified SSID and password.
+        endchoice
 
-  menu "Web Server"
-    config LOCAL_DOMAIN
-      string "Local Domain Name"
-      default "ledespino.local"
-      help
-        Local domain advertised by mDNS and used for responses by the HTTP server.
+        config WIFI_SSID
+            string "WiFi SSID"
+            default "Ledespino"
+            help
+                SSID (network name) for the example to connect to.
 
-    config HTTP_SERVER_PORT
-      int "HTTP Server Port"
-      default 80
-      help
-        Port to use for the HTTP server.
-  endmenu
+        config WIFI_PASSWORD
+            string "WiFi Password"
+            default "lettherebelight"
+            help
+                WiFi password (WPA or WPA2) for the example to use.
+
+                Can be left blank if the network has no security set.
+    endmenu
+
+    menu "Web Server"
+        config LOCAL_DOMAIN
+            string "Local Domain Name"
+            default "ledespino.local"
+            help
+                Local domain advertised by mDNS and used for responses by the HTTP server.
+
+        config HTTP_SERVER_PORT
+            int "HTTP Server Port"
+            default 80
+            help
+                Port to use for the HTTP server.
+    endmenu
 
 endmenu
