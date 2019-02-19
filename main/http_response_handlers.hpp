@@ -38,7 +38,7 @@ esp_err_t http_status_handler( httpd_req_t *req )
 
     char temp[sizeof(json) + 8 * 6 + 129];
 
-    // Currently active color
+    // Currently active color (0-8) from presets
     uint8_t a;
     err = nvs_get_u8( led_nvs, "a", &a );
     ESP_ERROR_CHECK( err );
@@ -57,10 +57,10 @@ esp_err_t http_status_handler( httpd_req_t *req )
 
     // Load the device name from NVS
     size_t device_name_length;
-    err = nvs_get_str( led_nvs, "device_name", NULL, &device_name_length );
+    err = nvs_get_str( led_nvs, "name", NULL, &device_name_length );
     ESP_ERROR_CHECK( err );
     char *device_name = (char*)malloc( device_name_length );
-    err = nvs_get_str( led_nvs, "device_name", device_name, &device_name_length );
+    err = nvs_get_str( led_nvs, "name", device_name, &device_name_length );
     ESP_ERROR_CHECK( err );
 
     snprintf( temp, sizeof(json) + 8 * 6 + 129, json, a, c[0][0], c[0][1], c[0][2], c[1][0], c[1][1], c[1][2], c[2][0], c[2][1], c[2][2], c[3][0], c[3][1], c[3][2], c[4][0], c[4][1], c[4][2], c[5][0], c[5][1], c[5][2], c[6][0], c[6][1], c[6][2], c[7][0], c[7][1], c[7][2], mode, device_name, wifi_config.sta.ssid, 1);
@@ -83,6 +83,9 @@ httpd_uri http_status_uri = {
 esp_err_t http_set_handler( httpd_req_t *req )
 {
     ESP_LOGI( "HTTPD", "/set" );
+
+    // char ssid[32];
+    // char password[64];
 
 //     String password, temp, error="";
 //     char temp2[64];

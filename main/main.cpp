@@ -12,12 +12,13 @@
 #include <esp_event_loop.h>
 #include <esp_log.h>
 #include <esp_system.h>
-#include <nvs_flash.h>
+#include <mdns.h>
 
 extern "C" {
     void app_main(void);
 }
 
+#include "nvs.hpp"
 #include "constants.hpp"
 #include "http_response_handlers.hpp"
 
@@ -49,10 +50,13 @@ const char orange[3] = {255, 127, 0};
 httpd_handle_t start_webserver()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.server_port = CONFIG_HTTP_SERVER_PORT;
 
     // Start the httpd server
     ESP_LOGW( "SYS", "Starting HTTP server on port: '%d'", config.server_port );
     httpd_handle_t server;
+
+    mdns_service_add( NULL, "_http", "_tcp", config.server_port, NULL, 0 );
 
     if( httpd_start( &server, &config ) == ESP_OK) {
             // Set URI handlers
@@ -131,21 +135,40 @@ void app_main()
     ESP_ERROR_CHECK( err );
 
     /**
+     * mDNS Initialisation
+     */
+    ESP_ERROR_CHECK( mdns_init() );
+
+    // Load the device hostname and instanc name
+    char *hostname = NULL, *instance_name = NULL;
+    err = nvs_get_set_str_default( system_nvs, "hostname", hostname, CONFIG_DEFAULT_HOSTNAME );
+    ESP_ERROR_CHECK( err );
+    err = nvs_get_set_str_default( system_nvs, "instance_name", instance_name, CONFIG_DEFAULT_INSTANCE_NAME );
+
+    ESP_LOGW( "SYS", "Hostname: %s", hostname );
+
+    // Set the mDNS hostname
+    ESP_ERROR_CHECK(
+        mdns_hostname_set( hostname )
+    );
+
+    // Set the default instance name
+    ESP_ERROR_CHECK(
+        mdns_instance_name_set( instance_name )
+    );
+
+    /**
      * WiFi Initialisation
      */
     WiFiMode mode;
-    err = nvs_get_u8( system_nvs, "wifimode", (uint8_t*)&mode );
-    if( err == ESP_ERR_NVS_NOT_FOUND ){
-        // Initialise the mode if not set (first boot)
-        #ifdef CONFIG_DEFAULT_WIFI_MODE_AP
-            mode = WiFiMode::AccessPoint;
-        #else
-            #ifdef CONFIG_DEFAULT_WIFI_MODE_STA
-                mode = WiFiMode::Station;
-            #endif
+
+    #ifdef CONFIG_DEFAULT_WIFI_MODE_AP
+        err = nvs_get_set_u8_default( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::AccessPoint );
+    #else
+        #ifdef CONFIG_DEFAULT_WIFI_MODE_STA
+            err = nvs_get_set_u8_default( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::Station );
         #endif
-        err = nvs_set_u8( system_nvs, "wifi_mode", mode );
-    }
+    #endif
     ESP_ERROR_CHECK( err );
 
     // Initialize the underlying TCP/IP stack
@@ -165,38 +188,20 @@ void app_main()
         esp_wifi_init( &wifi_init_config )
     );
 
-    char *wifi_ssid, *wifi_pass;
-    size_t wifi_ssid_length, wifi_pass_length;
+    char *wifi_ssid = NULL, *wifi_pass = NULL;
 
     // Get the WiFi SSID from the NVS
-    err = nvs_get_str( system_nvs, "wifi_ssid", NULL, &wifi_ssid_length );
-    if( err == ESP_ERR_NVS_NOT_FOUND ){
-        // Initialise the SSID with the default if not set
-        wifi_ssid = (char*)CONFIG_WIFI_SSID;
-        err = nvs_set_str( system_nvs, "wifi_ssid", wifi_ssid );
-    } else {
-        ESP_ERROR_CHECK( err );
-        wifi_ssid = (char*)malloc( wifi_ssid_length );
-        err = nvs_get_str( system_nvs, "wifi_ssid", wifi_ssid, &wifi_ssid_length );
-    }
+    err = nvs_get_set_str_default( system_nvs, "wifi_ssid", wifi_ssid, CONFIG_WIFI_SSID );
     ESP_ERROR_CHECK( err );
 
     // Get the WiFi password from the NVS
-    err = nvs_get_str( system_nvs, "wifi_pass", NULL, &wifi_pass_length );
-    if( err == ESP_ERR_NVS_NOT_FOUND ){
-        // Initialise the password with the default if not set
-        wifi_pass = (char*)CONFIG_WIFI_PASSWORD;
-        err = nvs_set_str( system_nvs, "wifi_pass", wifi_pass );
-    } else {
-        ESP_ERROR_CHECK( err );
-        wifi_pass = (char*)malloc( wifi_pass_length );
-        err = nvs_get_str( system_nvs, "wifi_pass", wifi_pass, &wifi_pass_length );
-    }
+    err = nvs_get_set_str_default( system_nvs, "wifi_pass", wifi_pass, CONFIG_WIFI_PASSWORD );
     ESP_ERROR_CHECK( err );
 
     switch( mode ){
         case WiFiMode::AccessPoint:
             ESP_LOGW( "SYS", "WiFi Mode: AP" );
+            // TODO:
             break;
         case WiFiMode::Station:
             strcpy( (char*)wifi_config.sta.ssid, wifi_ssid );
@@ -210,15 +215,19 @@ void app_main()
             break;
     }
 
-    // Hold back commiting changes to NVS to minimise flash wear
+    // Hold back commiting changes to NVS until startup is complete to minimise
+    // flash wear
     err = nvs_commit( system_nvs );
     ESP_ERROR_CHECK( err );
 
+    /**
+     * LED Program
+     */
     // Load the LED NVS namespace
     err = nvs_open( "led", NVS_READWRITE, &led_nvs );
     ESP_ERROR_CHECK( err );
 
-    // Initialise default colours
+    // Initialise default colours and modes
     uint8_t a;
     err = nvs_get_u8( led_nvs, "a", &a );
     if( err == ESP_ERR_NVS_NOT_FOUND ){
@@ -228,7 +237,7 @@ void app_main()
         err = nvs_set_u8( led_nvs, "a", a );
         ESP_ERROR_CHECK( err );
 
-        err = nvs_set_str( led_nvs, "device_name", CONFIG_DEFAULT_DEVICE_NAME );
+        err = nvs_set_str( led_nvs, "name", CONFIG_DEFAULT_DEVICE_NAME );
         ESP_ERROR_CHECK( err );
 
         char key[2] = "0";

@@ -40,18 +40,26 @@ config DEFAULT_DEVICE_NAME
                 Can be left blank if the network has no security set.
     endmenu
 
-    menu "Web Server"
-        config LOCAL_DOMAIN
-            string "Local Domain Name"
-            default "ledespino.local"
+    menu "mDNS"
+        config DEFAULT_HOSTNAME
+            string "mDNS Hostname"
+            default "ledespino"
             help
-                Local domain advertised by mDNS and used for responses by the HTTP server.
+                Local hostname advertised by mDNS.
 
+        config DEFAULT_INSTANCE_NAME
+            string "mDNS Instance Name"
+            default "Ledespino"
+            help
+                Instance name advertised by mDNS.
+    endmenu
+
+    menu "HTTP"
         config HTTP_SERVER_PORT
-            int "HTTP Server Port"
+            int "HTTP Port"
             default 80
             help
-                Port to use for the HTTP server.
+                Specify TCP port for the HTTP server.
     endmenu
 
 endmenu
