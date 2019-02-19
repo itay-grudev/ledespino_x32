@@ -1,5 +1,11 @@
 menu "Ledespino Configuration"
 
+config DEFAULT_DEVICE_NAME
+    string "Default Device Name"
+    default "Ledespino"
+    help
+        Default device name displayed in the UI.
+
     menu "WiFi"
 
         choice DEFAULT_WIFI_MODE

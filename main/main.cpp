@@ -37,7 +37,7 @@ nvs_handle led_nvs;
 int mode = 0;
 
 // Front End Initial colours
-const char white[3]  = {65, 65, 0};
+const char white[3]  = {255, 255, 255};
 const char yellow[3] = {255, 255, 0};
 const char green[3] = {0, 232, 66};
 const char blue[3] = {0, 174, 255};
@@ -95,7 +95,15 @@ esp_err_t http_status_handler( httpd_req_t *req )
         ESP_ERROR_CHECK( err );
     }
 
-    snprintf( temp, sizeof(json) + 8 * 6 + 129, json, a, c[0][0], c[0][1], c[0][2], c[1][0], c[1][1], c[1][2], c[2][0], c[2][1], c[2][2], c[3][0], c[3][1], c[3][2], c[4][0], c[4][1], c[4][2], c[5][0], c[5][1], c[5][2], c[6][0], c[6][1], c[6][2], c[7][0], c[7][1], c[7][2], mode, "FACTORY_NAME", wifi_config.sta.ssid, 1);
+    // Load the device name from NVS
+    size_t device_name_length;
+    err = nvs_get_str( led_nvs, "device_name", NULL, &device_name_length );
+    ESP_ERROR_CHECK( err );
+    char *device_name = (char*)malloc( device_name_length );
+    err = nvs_get_str( led_nvs, "device_name", device_name, &device_name_length );
+    ESP_ERROR_CHECK( err );
+
+    snprintf( temp, sizeof(json) + 8 * 6 + 129, json, a, c[0][0], c[0][1], c[0][2], c[1][0], c[1][1], c[1][2], c[2][0], c[2][1], c[2][2], c[3][0], c[3][1], c[3][2], c[4][0], c[4][1], c[4][2], c[5][0], c[5][1], c[5][2], c[6][0], c[6][1], c[6][2], c[7][0], c[7][1], c[7][2], mode, device_name, wifi_config.sta.ssid, 1);
 
     httpd_resp_set_type( req, "text/json" );
     httpd_resp_sendstr( req, temp );
@@ -283,11 +291,14 @@ void app_main()
     // Initialise default colours
     uint8_t a;
     err = nvs_get_u8( led_nvs, "a", &a );
-    if( err == ESP_ERR_NVS_NOT_FOUND || true){
+    if( err == ESP_ERR_NVS_NOT_FOUND ){
         ESP_LOGW( "LED", "Initialising default colours." );
 
         a = 0;
         err = nvs_set_u8( led_nvs, "a", a );
+        ESP_ERROR_CHECK( err );
+
+        err = nvs_set_str( led_nvs, "device_name", CONFIG_DEFAULT_DEVICE_NAME );
         ESP_ERROR_CHECK( err );
 
         char key[2] = "0";
