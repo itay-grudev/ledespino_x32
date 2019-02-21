@@ -2,9 +2,9 @@
 
 extern wifi_config_t wifi_config;
 extern nvs_handle led_nvs;
+extern nvs_handle system_nvs;
 extern esp_err_t err;
 extern uint8_t mode;
-
 
 /**
  * GET /
@@ -31,7 +31,7 @@ httpd_uri http_root_uri = {
  * GET /status
  * Status path response handler
  */
-const char json[] = "{\"a\": \"%d\", \"c\": [\"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\", \"%02x%02x%02x\"], \"m\": \"%d\", \"n\": \"%s\", \"s\": \"%s\", \"w\": \"%d\"}";
+const char json[] = "{\"a\":\"%d\",\"c\": [\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\"],\"m\":\"%d\",\"n\":\"%s\",\"h\":\"%s\",\"s\":\"%s\",\"w\":\"%d\"}";
 esp_err_t http_status_handler( httpd_req_t *req )
 {
     ESP_LOGI( "HTTPD", "/status" );
@@ -47,7 +47,7 @@ esp_err_t http_status_handler( httpd_req_t *req )
     uint8_t c[8][3];
 
     // Get colours from NVS
-    size_t rgb_size;
+    size_t rgb_size = 3;
     char key[2] = "0";
     for( uint8_t i = 0; i < 8; ++i ){
         key[0] = (char)(i + 48);
@@ -56,14 +56,31 @@ esp_err_t http_status_handler( httpd_req_t *req )
     }
 
     // Load the device name from NVS
-    size_t device_name_length;
-    err = nvs_get_str( led_nvs, "name", NULL, &device_name_length );
+    char *device_name = NULL, *hostname = NULL;
+    err = nvs_get_str2( system_nvs, "device_name", device_name );
     ESP_ERROR_CHECK( err );
-    char *device_name = (char*)malloc( device_name_length );
-    err = nvs_get_str( led_nvs, "name", device_name, &device_name_length );
+    err = nvs_get_str2( system_nvs, "hostname", hostname );
     ESP_ERROR_CHECK( err );
 
-    snprintf( temp, sizeof(json) + 8 * 6 + 129, json, a, c[0][0], c[0][1], c[0][2], c[1][0], c[1][1], c[1][2], c[2][0], c[2][1], c[2][2], c[3][0], c[3][1], c[3][2], c[4][0], c[4][1], c[4][2], c[5][0], c[5][1], c[5][2], c[6][0], c[6][1], c[6][2], c[7][0], c[7][1], c[7][2], mode, device_name, wifi_config.sta.ssid, 1);
+    snprintf(
+        temp,
+        sizeof(json) + 8 * 6 + 129,
+        json,
+        a,
+        c[0][0], c[0][1], c[0][2],
+        c[1][0], c[1][1], c[1][2],
+        c[2][0], c[2][1], c[2][2],
+        c[3][0], c[3][1], c[3][2],
+        c[4][0], c[4][1], c[4][2],
+        c[5][0], c[5][1], c[5][2],
+        c[6][0], c[6][1], c[6][2],
+        c[7][0], c[7][1], c[7][2],
+        mode,
+        device_name,
+        hostname,
+        wifi_config.sta.ssid,
+        0
+    );
 
     httpd_resp_set_type( req, "text/json" );
     httpd_resp_sendstr( req, temp );

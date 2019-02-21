@@ -6,8 +6,13 @@ config DEFAULT_DEVICE_NAME
     help
         Default device name displayed in the UI.
 
-    menu "WiFi"
+config DEFAULT_HOSTNAME
+    string "Default Hostname (mDNS)"
+    default "ledespino"
+    help
+        Local hostname advertised by mDNS.
 
+    menu "WiFi"
         choice DEFAULT_WIFI_MODE
             prompt "Default WiFi Mode: AP or STA"
             default DEFAULT_WIFI_MODE_AP
@@ -40,18 +45,35 @@ config DEFAULT_DEVICE_NAME
                 Can be left blank if the network has no security set.
     endmenu
 
-    menu "mDNS"
-        config DEFAULT_HOSTNAME
-            string "mDNS Hostname"
-            default "ledespino"
+    menu "LED"
+        config LED_RED_PIN
+            int "Red Pin"
+            default 33
             help
-                Local hostname advertised by mDNS.
+                Pin number for PWM for the red channel.
+        config LED_GREEN_PIN
+            int "Green Pin"
+            default 25
+            help
+                Pin number for PWM for the green channel.
+        config LED_BLUE_PIN
+            int "Blue Pin"
+            default 32
+            help
+                Pin number for PWM for the blue channel.
+    endmenu
 
-        config DEFAULT_INSTANCE_NAME
-            string "mDNS Instance Name"
-            default "Ledespino"
+    menu "Sensors"
+        config SENSORS_LIGHT_PIN
+            int "Photoresistor Pin"
+            default 4
             help
-                Instance name advertised by mDNS.
+                Pin number for the analogue photo resistor input.
+        config SENSORS_DOOR_PIN
+            int "Door Sensor Pin"
+            default 16
+            help
+                Pin number for the door open/closed sensor.
     endmenu
 
     menu "HTTP"

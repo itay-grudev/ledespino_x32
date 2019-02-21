@@ -8,11 +8,12 @@
 // NOTES: VALIDATE SSID DOES NOT EXCEED 31 chars excluding \0 (32 in total)
 // NOTES: VALIDATE PASS DOES NOT EXCEED 63 chars excluding \0 (64 in total)
 
-#include <esp_wifi.h>
-#include <esp_event_loop.h>
-#include <esp_log.h>
-#include <esp_system.h>
 #include <mdns.h>
+#include <esp_log.h>
+#include <esp_wifi.h>
+#include <esp_system.h>
+#include <esp_event_loop.h>
+#include <driver/ledc.h>
 
 extern "C" {
     void app_main(void);
@@ -140,10 +141,10 @@ void app_main()
     ESP_ERROR_CHECK( mdns_init() );
 
     // Load the device hostname and instanc name
-    char *hostname = NULL, *instance_name = NULL;
-    err = nvs_get_set_str_default( system_nvs, "hostname", hostname, CONFIG_DEFAULT_HOSTNAME );
+    char *hostname = NULL, *device_name = NULL;
+    err = nvs_get_set_default_str( system_nvs, "hostname", hostname, CONFIG_DEFAULT_HOSTNAME );
     ESP_ERROR_CHECK( err );
-    err = nvs_get_set_str_default( system_nvs, "instance_name", instance_name, CONFIG_DEFAULT_INSTANCE_NAME );
+    err = nvs_get_set_default_str( system_nvs, "device_name", device_name, CONFIG_DEFAULT_DEVICE_NAME );
 
     ESP_LOGW( "SYS", "Hostname: %s", hostname );
 
@@ -154,7 +155,7 @@ void app_main()
 
     // Set the default instance name
     ESP_ERROR_CHECK(
-        mdns_instance_name_set( instance_name )
+        mdns_instance_name_set( device_name )
     );
 
     /**
@@ -163,15 +164,15 @@ void app_main()
     WiFiMode mode;
 
     #ifdef CONFIG_DEFAULT_WIFI_MODE_AP
-        err = nvs_get_set_u8_default( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::AccessPoint );
+        err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::AccessPoint );
     #else
         #ifdef CONFIG_DEFAULT_WIFI_MODE_STA
-            err = nvs_get_set_u8_default( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::Station );
+            err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::Station );
         #endif
     #endif
     ESP_ERROR_CHECK( err );
 
-    // Initialize the underlying TCP/IP stack
+    // Initialise the underlying TCP/IP stack
     tcpip_adapter_init();
 
     // Initialise main event loop and register the event loop handler
@@ -191,11 +192,11 @@ void app_main()
     char *wifi_ssid = NULL, *wifi_pass = NULL;
 
     // Get the WiFi SSID from the NVS
-    err = nvs_get_set_str_default( system_nvs, "wifi_ssid", wifi_ssid, CONFIG_WIFI_SSID );
+    err = nvs_get_set_default_str( system_nvs, "wifi_ssid", wifi_ssid, CONFIG_WIFI_SSID );
     ESP_ERROR_CHECK( err );
 
     // Get the WiFi password from the NVS
-    err = nvs_get_set_str_default( system_nvs, "wifi_pass", wifi_pass, CONFIG_WIFI_PASSWORD );
+    err = nvs_get_set_default_str( system_nvs, "wifi_pass", wifi_pass, CONFIG_WIFI_PASSWORD );
     ESP_ERROR_CHECK( err );
 
     switch( mode ){
@@ -221,7 +222,7 @@ void app_main()
     ESP_ERROR_CHECK( err );
 
     /**
-     * LED Program
+     * LED Program Initialisation
      */
     // Load the LED NVS namespace
     err = nvs_open( "led", NVS_READWRITE, &led_nvs );
@@ -235,9 +236,6 @@ void app_main()
 
         a = 0;
         err = nvs_set_u8( led_nvs, "a", a );
-        ESP_ERROR_CHECK( err );
-
-        err = nvs_set_str( led_nvs, "name", CONFIG_DEFAULT_DEVICE_NAME );
         ESP_ERROR_CHECK( err );
 
         char key[2] = "0";
@@ -259,4 +257,92 @@ void app_main()
 
     err = nvs_commit( led_nvs );
     ESP_ERROR_CHECK( err );
+
+    /**
+     * LED Fade
+     */
+    // LEDC Timer configuration
+    ledc_timer_config_t ledc_timer;
+    ledc_timer.duty_resolution = LEDC_TIMER_13_BIT; // Resolution of PWM duty
+    ledc_timer.freq_hz = 5000; // Frequency of PWM signal
+    ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE; // Timer mode
+    ledc_timer.timer_num = LEDC_TIMER_0; // Timer index
+    err = ledc_timer_config( &ledc_timer );
+    ESP_ERROR_CHECK( err );
+
+    // Individual channel configuration of the LED Controller
+    // * controller's channel number
+    // * output duty cycle, set initially to 0
+    // * GPIO number where LED is connected to
+    // * speed mode, either high or low
+    // * timer servicing selected channel
+    //   Note: if different channels use one timer,
+    //         then frequency and bit_num of these channels
+    //         will be the same
+    ledc_channel_config_t ledc_channel[3];
+    // Red
+    ledc_channel[0].channel    = LEDC_CHANNEL_0;
+    ledc_channel[0].duty       = 0;
+    ledc_channel[0].gpio_num   = (CONFIG_LED_RED_PIN);
+    ledc_channel[0].speed_mode = LEDC_HIGH_SPEED_MODE;
+    ledc_channel[0].hpoint     = 0;
+    ledc_channel[0].timer_sel  = LEDC_TIMER_0;
+    // Green
+    ledc_channel[1].channel    = LEDC_CHANNEL_1;
+    ledc_channel[1].duty       = 0;
+    ledc_channel[1].gpio_num   = (CONFIG_LED_GREEN_PIN);
+    ledc_channel[1].speed_mode = LEDC_HIGH_SPEED_MODE;
+    ledc_channel[1].hpoint     = 0;
+    ledc_channel[1].timer_sel  = LEDC_TIMER_0;
+    // Blue
+    ledc_channel[2].channel    = LEDC_CHANNEL_2;
+    ledc_channel[2].duty       = 0;
+    ledc_channel[2].gpio_num   = (CONFIG_LED_BLUE_PIN);
+    ledc_channel[2].speed_mode = LEDC_HIGH_SPEED_MODE;
+    ledc_channel[2].hpoint     = 0;
+    ledc_channel[2].timer_sel  = LEDC_TIMER_0;
+
+    // Configure the LEDC channels
+    const uint8_t ledc_channel_count = (
+        sizeof( ledc_channel ) /
+        sizeof( ledc_channel_config_t )
+    );
+    for( int i = 0; i < ledc_channel_count; ++i ){
+        err = ledc_channel_config( &ledc_channel[i] );
+        ESP_ERROR_CHECK( err );
+    }
+
+    // Initialise fade service
+    err = ledc_fade_func_install( 0 );
+    ESP_ERROR_CHECK( err );
+
+    ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 8191*0.95, 1000 );
+    ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
+    ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 0, 1000 );
+    ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
+    ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 0, 1000 );
+    ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
+    vTaskDelay( 1000 / portTICK_PERIOD_MS );
+
+    // LED Loop
+    while( true ){
+        ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 8191*0.78, 3500 );
+        ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+        ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 0, 3500 );
+        ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+        ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 8191, 3500 );
+        ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+        ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 0, 3500 );
+        ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+        ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 8191*0.95, 3500 );
+        ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+        ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 0, 3500 );
+        ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
+        vTaskDelay( 3500 / portTICK_PERIOD_MS );
+    }
 }
