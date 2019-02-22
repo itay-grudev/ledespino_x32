@@ -3,187 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title></title>
-<style>
-div,nav *{position:relative}
-p,nav .a:after{position:absolute}
-input,nav *,select{font-size:15px;background:#fff}
-p,nav *{text-align:center}
-body{background:-webkit-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-moz-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-ms-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-o-linear-gradient(90deg,#485563 10%,#29323c 90%);background:linear-gradient(90deg,#485563 10%,#29323c 90%);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;color:#fff}
-div{width:100%;margin:0 auto}
-h1{font-size:32px;margin:10px 0}
-h2{font-size:24px;margin:5px 0}
-nav{overflow:hidden;padding:3px;margin:0}
-nav *{float:left;width:23.5%;height:15px;padding:10px 0;margin:0 0 10px 2%;border-radius:3px;cursor:pointer;color:#000}
-p,input,select{width:100%}
-nav :nth-child(4n+1){margin-left:0}
-nav .a:after{content:'';display:block;top:-2px;bottom:-2px;left:-2px;right:-2px;border-radius:7px;border:2px solid #7BC3FF}
-p,i{left:0}
-#cp{clear:both;display:block;width:200px;height:200px;max-width:100%;cursor:crosshair;border-radius: 50%}
-.hdn,i{display:none}
-input,select{display:block;position:relative;margin:0 0 10px;padding:10px;border:none;border-radius:3px;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;-o-box-sizing:border-box;-ms-box-sizing:border-box;box-sizing:border-box;-webkit-appearance:none;-moz-appearance:none;appearance: none;outline:0}
-input:focus,select:focus{padding:8px;border-radius:3px;border:2px solid #7BC3FF}
-#settings{cursor:pointer}
-i{position:fixed;top:0;right:0;bottom:0;background:rgba(0,0,0,.7)}
-p{top:50%;margin-top:-12px;color:#fff}
-@media only screen and (min-width:641px){
-div{width:640px}
-h1{font-size:48px;margin:30px 0}
-h2{font-size:36px;margin:10px 0}
-nav *{height:15px;padding:20px 0;-webkit-touch-callout: none;-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;}
-nav *:hover{background:#eee}
-nav *:active{background:#ddd}
-nav .a:after{top:-3px;right:-3px;bottom:-3px;left:-3px;border-width:3px}
-input,select{padding:20px 10px;margin:0 0 20px}
-input:focus,select:focus{padding:17px 7px;border-width:3px}}
-</style>
-</head>
-<body>
-<div>
-  <h1></h1>
-  <h2>Colors</h2>
-  <nav id="c">
-    <a id="c0"></a>
-    <a id="c1"></a>
-    <a id="c2"></a>
-    <a id="c3"></a>
-    <a id="c4"></a>
-    <a id="c5"></a>
-    <a id="c6"></a>
-    <a id="c7"></a>
-  </nav>
-  <canvas id="cp"></canvas>
-  <h2>Mode</h2>
-  <nav>
-    <a id="m0">Static Color</a>
-    <a id="m1">HSV Fade</a>
-    <a id="m2">Speed Up</a>
-    <a id="m3">Brightness Up</a>
-    <a id="m4">Off</a>
-    <a id="m5">Random Fade</a>
-    <a id="m6">Speed Down</a>
-    <a id="m7">Brightness Down</a>
-  </nav>
-  <h2 id="settings">Settings</h2>
-  <form action="/set" class="hdn" method="post">
-    <b>Device name</b>
-    <input type="text" name="n">
-    <b>Hostname</b>
-    <input type="text" name="h">
-    <b>Network type</b>
-    <select name="w">
-        <option value="0">Access Point</option>
-        <option value="1">Station</option>
-    </select>
-    <b>Network SSID</b>
-    <input type="text" name="s">
-    <b>Network password</b>
-    <input type="password" name="p">
-    <b>Confirm password</b>
-    <input type="password" name="c">
-    <input type="submit">
-  </form>
-</div>
-<i><p></p></i>
-<script>
-(function(){
-var dataInt, elm, ctx, scf, ac = {h:0,s:1,l:0.5}, x, y, primaryLoad = true;
+<script type="text/javascript">
+document.addEventListener( 'DOMContentLoaded', function(){
+    function rgb2hex(a){function b(a){return a.toString(16).padStart(2,"0")}return b(a.r)+b(a.g)+b(a.b)}
+    function hex2rgb(a){return a=a.replace("#",""),{r:parseInt(a.substring(0,2),16),g:parseInt(a.substring(2,4),16),b:parseInt(a.substring(4,6),16)}}
+    function rgb2hsv(a){var b,c=a.r/255,d=a.g/255;a=a.b/255;var e=Math.max(c,d,a),f=e-Math.min(c,d,a),g=function(a){return(e-a)/6/f+.5};if(0==f)var h=b=0;else{b=f/e;var i=g(c),j=g(d);g=g(a),c===e?h=g-j:d===e?h=1/3+i-g:a===e&&(h=2/3+j-i),0>h?h+=1:h>1&&--h}return{h:h*Math.PI*2,s:b,v:e}}
+    function hsv2rgb(a){ function b(a,b,c,d){d.r=f(255*a),d.g=f(255*b),d.b=f(255*c)}var c=Math,d=c.max,e=c.min,f=c.round;c=c.PI,out={r:0,g:0,b:0},c=a.h/c*3%6;var g=d(0,e(a.s,1));if(a=d(0,e(a.v,1)),g){d=(1-g)*a,e=a-d,g=c%1;var h=0|c;0==h&&b(a,e*c+d,d,out),1==h&&b(e*(1-g)+d,a,d,out),2==h&&b(d,a,e*g+d,out),3==h&&b(d,e*(1-g)+d,a,out),4==h&&b(e*g+d,d,a,out),5==h&&b(a,d,e*(1-g)+d,out)}else out.r=out.g=out.b=Math.ceil(255*a);return out}
+    function rlum(a){var b=1/12.92,c=a.r/255,d=a.g/255;return a=a.b/255,.2126*(.03928>=c?c*b:Math.pow((c+.055)/1.055,2.4))+.7152*(.03928>=d?d*b:Math.pow((d+.055)/1.055,2.4))+.0722*(.03928>=a?a*b:Math.pow((a+.055)/1.055,2.4))}
+    function rgb2txt(c){return`rgb(${c.r}, ${c.g}, ${c.b})`};
 
-// Color chooser
-for(var i = 0; i < 8; ++i) {
-  document.getElementById('c'+i).onclick = (function() {
-    var j = i;
-    return function() {
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', '/set', true);
-      xhr.send('a='+j);
+    var hsv = { h: 0, s: 1, v: 1}, rgb = hsv2rgb( hsv ), elm, ctx
 
-      this.parentNode.querySelector('.a').className = '';
-      this.className = 'a';
+    // Initialise and render the Color Picker
+    elm = document.getElementById( 'cp' )
+    ctx = elm.getContext( '2d' )
+    renderColorPicker()
 
-      let rgb = this.style.background.split(')'   )[0].split('(')[1].split(', ');
-      ac = rgb2hsl( {r:rgb[0],g:rgb[1],b:rgb[2]} )
-      renderColorPicker()
+    // Attach event handlers to the Brightness and Saturation sliders
+    document.getElementById( 's' ).addEventListener( 'input', function(){
+        hsv.s = this.value / 100
+        updateActiveColor()
+    })
+    document.getElementById( 'v' ).addEventListener( 'input', function(){
+        hsv.v = this.value / 100
+        updateActiveColor()
+    })
+    document.querySelectorAll( '#s, #v' ).forEach( function(){
+        this.addEventListener( 'change', saveColor )
+    })
+
+    // Saves the current color
+    function saveColor(){
     }
-  })();
-}
 
-// Mode toggle
-for(var i = 0; i < 8; ++i) {
-  document.getElementById('m'+i).onclick = (function() {
-    var j = i;
-    return function(){
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', '/set', true);
-      xhr.send('m='+j);
-      if( j == 7 ) return;
-      this.parentNode.querySelector('.a').className = '';
-      this.className = 'a';
+    // Replace the current active color
+    function setActiveColor( c ){
+        hsv = c
+        document.getElementById('s').value = hsv.s * 100
+        document.getElementById('v').value = hsv.v * 100
+        updateActiveColor()
     }
-  })();
-}
 
-// Settings Toggle
-document.querySelector('#settings').onclick = function() {
-  document.querySelector('form').classList.toggle('hdn');
-  window.location = '#settings';
-}
+    // Update the active color visualisation
+    function updateActiveColor(){
+        rgb = hsv2rgb( hsv )
+        document.querySelector('#c .a').style.background = rgb2txt( rgb )
+        document.body.style.background = rgb2txt( rgb )
+        document.body.className =((rlum( rgb) + 0.05) / (rlum( {r: 255,g: 255,b: 255} ) + 0.05)) > 0.6 ? 'light' : 'dark'
+        updateColorPicker()
+    }
 
-// Pull data via a JSON Request
-function status() {
-  var xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4) {
-      // Check if the request was successful
-      if (xhr.status === 200) {
-        // Populate retreived data
-        document.querySelector('i').style.display = 'none';
-        var res = JSON.parse(xhr.responseText);
-        document.querySelector('title').innerHTML = res['n'];
-        document.querySelector('h1').innerHTML = res['n'];
-        if ( primaryLoad ) {
-            document.querySelector('[name=n]').value = res['n'];
-            document.querySelector('[name=h]').value = res['h'];
-            document.querySelector('[name=s]').value = res['s'];
-            document.querySelector('[name=w]').options[res['w']].selected = 'selected';
+    var dataInt, primaryLoad = true;
+    // Color chooser
+    for(var i = 0; i < 8; ++i) {
+      document.getElementById('c'+i).onclick = (function() {
+        var j = i;
+        return function() {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/set', true);
+          xhr.send('a='+j);
+
+          this.parentNode.querySelector('.a').className = '';
+          this.className = 'a';
+
+          let rgb = this.style.background.split(')')[0].split('(')[1].split(', ');
+          setActiveColor( rgb2hsv( { r: rgb[0], g: rgb[1], b: rgb[2] }))
         }
-        for(var i = 0; i < 8; ++i) {
-          var t = document.getElementById('c'+i);
-          t.style.background = '#'+res['c'][i];
-          if( i == res['a'] ){
-              t.className = 'a';
-              ac = rgb2hsl( hexToRgb( res['c'][i] ) )
-              renderColorPicker()
+      })();
+    }
+
+    // Mode toggle
+    for(var i = 0; i < 8; ++i) {
+      document.getElementById('m'+i).onclick = (function() {
+        var j = i;
+        return function(){
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/set', true);
+          xhr.send('m='+j);
+          if( j == 7 ) return;
+          this.parentNode.querySelector('.a').className = '';
+          this.className = 'a';
+        }
+      })();
+    }
+
+    // Settings Toggle
+    document.getElementById('settings').onclick = function() {
+      document.querySelector('form').classList.toggle('hdn');
+      window.location = '#settings';
+    }
+
+    // Pull data via a JSON Request
+    function status() {
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          // Check if the request was successful
+          if (xhr.status === 200) {
+            // Populate retreived data
+            document.querySelector('aside').style.display = 'none';
+            var res = JSON.parse(xhr.responseText);
+            document.querySelector('title').innerHTML = res['n'];
+            document.querySelector('h1').innerHTML = res['n'];
+            if ( primaryLoad ) {
+                document.querySelector('[name=n]').due = res['n'];
+                document.querySelector('[name=h]').due = res['h'];
+                document.querySelector('[name=s]').due = res['s'];
+                document.querySelector('[name=w]').options[res['w']].selected = 'selected';
+            }
+            for(var i = 0; i < 8; ++i) {
+              var t = document.getElementById('c'+i);
+              t.style.background = '#'+res['c'][i];
+              if( i == res['a'] ){
+                  t.className = 'a';
+                  setActiveColor( rgb2hsv( hex2rgb( res['c'][i] ) ) )
+              }
+              else t.className = '';
+              t = document.getElementById('m'+i);
+              if( i == res['m'] ) t.className = 'a';
+              else t.className = '';
+            }
+            if( primaryLoad ) primaryLoad = false;
+          } else {
+            // Show error overlay
+            document.querySelector('aside').innerHTML = 'Unable to process data from module. Check logs.';
+            document.querySelector('aside').style.display = 'flex';
+            console.log(xhr.status, xhr.responseText);
           }
-          else t.className = '';
-          t = document.getElementById('m'+i);
-          if( i == res['m'] ) t.className = 'a';
-          else t.className = '';
         }
-        if( primaryLoad ) primaryLoad = false;
-      } else {
-        // Show error overlay
-        document.querySelector('i p').innerHTML = 'Unable to process data from module. Check logs.';
-        document.querySelector('i').style.display = 'inline-block';
-        console.log(xhr.status, xhr.responseText);
       }
-    }
-  }
-  xhr.open('GET', 'status', true);
-  xhr.send(null);
-};
-status();
-dataInt = setInterval(status, 5000);
+      xhr.open('GET', 'status', true);
+      xhr.send(null);
+    };
+    status();
+    // dataInt = setInterval(status, 5000);
 
-// Color Picker
-var elm = document.querySelector( '#cp' );
-var ctx = elm.getContext( '2d' );
-ctx.imageSmoothingEbabled = false;
 
-function renderColorPicker( fullRender ){
-    // Full render re-renders the HSL background
-    if( fullRender ){
-        scf = window.devicePixelRatio || 1;
+
+    function renderColorPicker(){
+        var scf = window.devicePixelRatio || 1;
         elm.width = elm.clientWidth * scf;
         elm.height = elm.clientHeight * scf;
         maxRadius = Math.min( elm.height, elm.width ) / 2 + 1;
@@ -205,7 +163,7 @@ function renderColorPicker( fullRender ){
                     continue;
                 }
 
-                let lum = 0.5, sat = 1;
+                let d = 0.5, sat = 1;
                 let rx = x - elm.width / 2;
                 let ry = y - elm.height / 2;
                 let r = Math.sqrt(rx * rx + ry * ry);
@@ -221,8 +179,8 @@ function renderColorPicker( fullRender ){
                         return p;
                     }
                     hue /= Math.PI * 2;
-                    var q = lum < 0.5 ? lum * (1 + sat) : lum + sat - lum * sat;
-                    var p = 2 * lum - q;
+                    var q = d < 0.5 ? d * (1 + sat) : d + sat - d * sat;
+                    var p = 2 * d - q;
                     imageData.data[i]     = Math.round( hue2rgb( p, q, hue + 1/3 ) * 255 );
                     imageData.data[i + 1] = Math.round( hue2rgb( p, q, hue )       * 255 );
                     imageData.data[i + 2] = Math.round( hue2rgb( p, q, hue - 1/3 ) * 255 );
@@ -230,119 +188,294 @@ function renderColorPicker( fullRender ){
                 }
             }
         }
+        updateColorPicker()
     }
 
-    ctx.putImageData( imageData, 0, 0 );
+    function updateColorPicker(){
+        ctx.putImageData( imageData, 0, 0 );
 
-    ctx.beginPath();
-    ctx.moveTo( elm.width / 2, elm.height / 2 );
-    ctx.lineTo( elm.width / 2 + Math.cos( ac.h ) * maxRadius+1, elm.height / 2 - Math.sin( ac.h ) * maxRadius+1 );
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-    ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo( elm.width / 2, elm.height / 2 );
+        ctx.lineTo( elm.width / 2 + Math.cos( hsv.h ) * maxRadius+1, elm.height / 2 - Math.sin( hsv.h ) * maxRadius+1 );
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc( elm.width / 2, elm.height / 2, minRadius-1, 0, Math.PI * 2);
-    // ctx.fillStyle = 'hsl(' + ac.h * 180 / Math.PI + ', 100%, 50%)';
-    ctx.fillStyle = `hsl(${ac.h * 180 / Math.PI}, ${ac.s*100}%, ${ac.l*100}%)`;
-    ctx.fill();
+        ctx.beginPath();
+        ctx.arc( elm.width / 2, elm.height / 2, minRadius-1, 0, Math.PI * 2);
+        ctx.fillStyle = rgb2txt( rgb );
+        ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc( elm.width / 2, elm.height / 2, minRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-}
-
-renderColorPicker( true )
-
-var pick = null, c;
-
-function colorMove(e, touch){
-  if( ! pick ) return;
-  var x,y;
-  // This is the current screen rectangle of canvas
-  var rect = elm.getBoundingClientRect();
-
-  if ( touch ) {
-    x = e.changedTouches[0].clientX - rect.left;
-    y = e.changedTouches[0].clientY - rect.top;
-  } else {
-    // Recalculate mouse offsets to relative offsets
-    x = e.clientX - rect.left;
-    y = e.clientY - rect.top;
-  }
-
-  ac.h = Math.atan2(y - rect.height / 2, rect.width / 2 - x) + Math.PI;
-  lum = 50;
-  document.querySelector('#c .a').style.background = 'hsl(' + ac.h * 180 / Math.PI + ', 100%, ' + lum + '%)';
-  renderColorPicker( false )
-  e.preventDefault();
-}
-
-function pickOn(e) {
-  pick = true;
-  c = document.querySelector('#c .a').style.background;
-  colorMove(e);
-  e.preventDefault();
-  return false;
-}
-
-function pickOff(e) {
-  if ( ! pick ) return;
-  pick = null;
-  clearInterval(dataInt);
-  var xhr = new XMLHttpRequest(), t = document.getElementById('c');
-  xhr.open('POST', '/set', true);
-  xhr.send('c' + Array.prototype.slice.call( t.children ).indexOf( t.querySelector('.a') ) + '=' + hsl2hex( hue / Math.PI / 2, 1,  lum / 100));
-  dataInt = setInterval(status, 5000);
-  e.preventDefault();
-}
-
-function pickC() {
-  pick = null;
-  document.querySelector('#c .a').style.background = c;
-}
-
-elm.onmousedown = pickOn;
-elm.onmousemove = colorMove;
-document.onmouseup = pickOff;
-elm.addEventListener('touchstart', pickOn, false);
-elm.addEventListener('touchmove', function(e) { colorMove(e, true) }, false);
-elm.addEventListener('touchend', pickOff, false);
-elm.addEventListener('touchcancel', pickC, false);
-window.addEventListener('resize', () => { renderColorPicker( true ) })
-function hsl2hex(d,b,a){if(0==b)a=b=d=a;else{var f=function(a,b,c){0>c&&(c+=1);1<c&&--c;return c<1/6?a+6*(b-a)*c:.5>c?b:c<2/3?a+(b-a)*(2/3-c)*6:a},e=.5>a?a*(1+b):a+b-a*b,g=2*a-e;a=f(g,e,d+1/3);b=f(g,e,d);d=f(g,e,d-1/3)}return('0'+Number(Math.round(255*a)).toString(16)).slice(-2)+('0'+Number(Math.round(255*b)).toString(16)).slice(-2)+('0'+Number(Math.round(255*d)).toString(16)).slice(-2)};
-// https://gist.github.com/emanuel-sanabria-developer/5793377
-function rgb2hsl(c){
-    c.r /= 255, c.g /= 255, c.b /= 255;
-    var max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b);
-    var h, s, l = (max + min) / 2;
-
-    if(max == min){
-        h = s = 0; // achromatic
-    }else{
-        var d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max){
-            case c.r: h = (c.g - c.b) / d + (c.g < c.b ? 6 : 0); break;
-            case c.g: h = (c.b - c.r) / d + 2; break;
-            case c.b: h = (c.r - c.g) / d + 4; break;
-        }
+        ctx.beginPath();
+        ctx.arc( elm.width / 2, elm.height / 2, minRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 
-    return {h:h, s:s, l:l};
-}
-// https://stackoverflow.com/a/5624139/894209
-function hexToRgb(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-})();
+    var pick = null, c;
+
+    function colorMove(e, touch){
+      if( ! pick ) return;
+      var x,y;
+      // This is the current screen rectangle of canvas
+      var rect = elm.getBoundingClientRect();
+
+      if ( touch ) {
+        x = e.changedTouches[0].clientX - rect.left;
+        y = e.changedTouches[0].clientY - rect.top;
+      } else {
+        // Recalculate mouse offsets to relative offsets
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      }
+
+      hsv.h = Math.atan2(y - rect.height / 2, rect.width / 2 - x) + Math.PI;
+      updateActiveColor()
+      return false;
+    }
+
+    function pickOn(e) {
+      pick = true;
+      colorMove(e);
+      return false;
+    }
+
+    function pickOff() {
+      if ( ! pick ) return;
+      pick = null;
+      clearInterval(dataInt);
+      var xhr = new XMLHttpRequest(), t = document.getElementById('c');
+      xhr.open('POST', '/set', true);
+      xhr.send('c' + Array.prototype.slice.call( t.children ).indexOf( t.querySelector('.a') ) + '=' + rgb2hex( rgb ));
+      // dataInt = setInterval(status, 5000);
+      return false;
+    }
+
+    function pickC() {
+      pick = null;
+      document.querySelector('#c .a').style.background = c;
+    }
+
+    elm.onmousedown = pickOn;
+    elm.onmousemove = colorMove;
+    document.onmouseup = pickOff;
+    elm.addEventListener('touchstart', pickOn, false);
+    elm.addEventListener('touchmove', function(e) { colorMove(e, true) }, false);
+    elm.addEventListener('touchend', pickOff, false);
+    elm.addEventListener('touchcancel', pickC, false);
+    window.addEventListener('resize', renderColorPicker )
+})
 </script>
+<title></title>
+<style type="text/css">
+body {
+    background-color: #29323c;
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-size:20px;
+    color:#fff;
+    transition: background-color 0.4s, color 0.4s;
+}
+
+body.light {
+    color: #000;
+}
+body.light input[type=range] {
+    background-color: #000;
+}
+body.light input[type=range]::-webkit-slider-thumb,
+body.light input[type=range]::-moz-range-thumb {
+    filter: brightness( 80% );
+}
+
+main {
+    position: relative;
+    padding: 0 10px;
+}
+main * {
+    position: relative;
+    z-index: 1;
+}
+main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    bottom: 0; right: 0;
+    /* background: rgba(0, 0, 0, 0.35); */
+    border-radius: 4px;
+    /* z-index: 0; */
+}
+nav * {position:relative}
+aside {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    bottom: 0; right: 0;
+    justify-content: center;
+    align-items: center;
+    background:rgba(0,0,0,.7);
+    color:#fff;
+}
+p,nav .a:after{position:absolute}
+input,nav *,select{font-size:15px;background:#fff}
+p,nav *{text-align:center}
+main{width:100%;margin:0 auto}
+h1{font-size:32px;margin:10px 0}
+h2{font-size:24px;margin:10px 0 5px}
+nav{overflow:hidden;padding:3px;margin:0}
+nav *{float:left;width:23.5%;height:15px;padding:10px 0;margin:0 0 10px 2%;border-radius:3px;cursor:pointer;color:#000}
+p,input,select{width:100%}
+nav :nth-child(4n+1){margin-left:0}
+nav .a:after{content:'';display:block;top:-2px;bottom:-2px;left:-2px;right:-2px;border-radius:7px;border:2px solid #7BC3FF}
+p,i{left:0}
+#cp{clear:both;display:block;width:200px;height:200px;max-width:100%;cursor:crosshair;border-radius: 50%}
+.hdn{display:none}
+input,select{display:block;position:relative;margin:0 0 10px;padding:10px;border:none;border-radius:3px;box-sizing:border-box;outline:0}
+input:focus,select:focus{padding:8px;border-radius:3px;border:2px solid #7BC3FF}
+#settings{cursor:pointer}
+main > div {
+    display: block;
+    margin-top: 15px;
+}
+main div canvas {
+    margin: 0 auto;
+}
+main div label {
+    display: block;
+    margin: 15px 0 10px;
+}
+
+input[type=range] {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background-color: #fff;
+    outline: none;
+    border: none;
+    padding: 0;
+    transition: all 0.4s;
+}
+
+input[type=range]:focus {
+    outline: none;
+    border: none;
+    padding: 0;
+}
+
+input[type=range]::-webkit-slider-thumb,
+input[type=range]::-moz-range-thumb {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #7BC3FF;
+    cursor: pointer;
+    border: none;
+    outline: none;
+}
+
+input[type=range]::-moz-focus-outer {
+    border: 0;
+}
+
+main div span {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 5px;
+    background: #fff;
+    border-radius: 3px;
+}
+main div span i {
+
+    position: absolute;
+    margin-top: -5px;
+    left:30%;
+}
+@media only screen and (min-width:641px){
+main > div {
+    display: flex;
+}
+main > div > div {
+    flex-grow: 1;
+    margin-left: 30px;
+}
+main div label {
+    display: block;
+    margin: 30px 0 10px;
+}
+main{width:640px}
+h1{font-size:48px;margin:30px 0}
+h2{font-size:36px;margin:10px 0}
+nav *{height:15px;padding:20px 0;}
+nav *:hover{background:#eee}
+nav *:active{background:#ddd}
+nav .a:after{top:-3px;right:-3px;bottom:-3px;left:-3px;border-width:3px}
+input,select{padding:20px 10px;margin:0 0 20px}
+input:focus,select:focus{padding:17px 7px;border-width:3px}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1></h1>
+  <h2>Colors</h2>
+  <nav id="c">
+    <a id="c0"></a>
+    <a id="c1"></a>
+    <a id="c2"></a>
+    <a id="c3"></a>
+    <a id="c4"></a>
+    <a id="c5"></a>
+    <a id="c6"></a>
+    <a id="c7"></a>
+  </nav>
+  <div>
+      <canvas id="cp"></canvas>
+      <div>
+          <label>Saturation</label>
+          <input type="range" min="0" max="100" value="100" id="s">
+          <i></i>
+          <label>Brightness</label>
+          <input type="range" min="0" max="100" value="100" id="v">
+          <i></i>
+      </div>
+  </div>
+  <h2>Mode</h2>
+  <nav>
+    <a id="m0">Static Color</a>
+    <a id="m1">HSV Fade</a>
+    <a id="m2">Speed Up</a>
+    <a id="m3">Brightness Up</a>
+    <a id="m4">Off</a>
+    <a id="m5">Random Fade</a>
+    <a id="m6">Speed Down</a>
+    <a id="m7">Brightness Down</a>
+  </nav>
+  <h2 id="settings">Settings</h2>
+  <form action="/set" class="hdn" method="post">
+    <b>Device name</b>
+    <input type="text" name="n">
+    <b>Hostname</b>
+    <input type="text" name="h">
+    <b>Network type</b>
+    <select name="w">
+        <option due="0">Access Point</option>
+        <option due="1">Station</option>
+    </select>
+    <b>Network SSID</b>
+    <input type="text" name="s">
+    <b>Network password</b>
+    <input type="password" name="p">
+    <b>Confirm password</b>
+    <input type="password" name="c">
+    <input type="submit">
+  </form>
+</main>
+<aside></aside>
 </body>
 </html>

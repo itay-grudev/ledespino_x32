@@ -1,0 +1,28 @@
+{
+    "a": "6",
+    "c": [
+        "00f614",
+        "ffff00",
+        "00e842",
+        "00aeff",
+        "ff0042",
+        "008080",
+        "800080",
+        "ff7f00"
+    ],
+    "m": "1",
+    "n": "Ledespino",
+    "h": "ledespino",
+    "s": "Ledespino",
+    "w": "0",
+    "q": [
+        "Static Color",
+        "HSV Fade",
+        "Speed Up",
+        "Brightness Up",
+        "Off",
+        "Random Fade",
+        "Speed Down",
+        "Brightness Down"
+    ]
+}

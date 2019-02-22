@@ -1,0 +1,31 @@
+div,nav *{position:relative}
+p,nav .a:after{position:absolute}
+input,nav *,select{font-size:15px;background:#fff}
+p,nav *{text-align:center}
+body{background:-webkit-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-moz-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-ms-linear-gradient(90deg,#485563 10%,#29323c 90%);background:-o-linear-gradient(90deg,#485563 10%,#29323c 90%);background:linear-gradient(90deg,#485563 10%,#29323c 90%);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;color:#fff}
+div{width:100%;margin:0 auto}
+h1{font-size:32px;margin:10px 0}
+h2{font-size:24px;margin:5px 0}
+nav{overflow:hidden;padding:3px;margin:0}
+nav *{float:left;width:23.5%;height:15px;padding:10px 0;margin:0 0 10px 2%;border-radius:3px;cursor:pointer;color:#000}
+p,input,select{width:100%}
+nav :nth-child(4n+1){margin-left:0}
+nav .a:after{content:'';display:block;top:-2px;bottom:-2px;left:-2px;right:-2px;border-radius:7px;border:2px solid #7BC3FF}
+p,i{left:0}
+#cp{clear:both;display:block;width:200px;height:200px;max-width:100%;cursor:crosshair;border-radius: 50%}
+.hdn,i{display:none}
+input,select{display:block;position:relative;margin:0 0 10px;padding:10px;border:none;border-radius:3px;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;-o-box-sizing:border-box;-ms-box-sizing:border-box;box-sizing:border-box;-webkit-appearance:none;-moz-appearance:none;appearance: none;outline:0}
+input:focus,select:focus{padding:8px;border-radius:3px;border:2px solid #7BC3FF}
+#settings{cursor:pointer}
+i{position:fixed;top:0;right:0;bottom:0;background:rgba(0,0,0,.7)}
+p{top:50%;margin-top:-12px;color:#fff}
+@media only screen and (min-width:641px){
+div{width:640px}
+h1{font-size:48px;margin:30px 0}
+h2{font-size:36px;margin:10px 0}
+nav *{height:15px;padding:20px 0;-webkit-touch-callout: none;-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;}
+nav *:hover{background:#eee}
+nav *:active{background:#ddd}
+nav .a:after{top:-3px;right:-3px;bottom:-3px;left:-3px;border-width:3px}
+input,select{padding:20px 10px;margin:0 0 20px}
+input:focus,select:focus{padding:17px 7px;border-width:3px}}
