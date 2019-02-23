@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+import "Mode.proto";
+import "Color.proto";
+
+message DeviceStatus {
+    enum WiFiMode {
+        AccessPoint = 0;
+        Station = 1;
+    };
+
+    // WiFi
+    string wifi_ssid = 1;
+    WiFiMode wifi_mode = 2;
+
+    // mDNS
+    string device_name = 3;
+    string hostname = 4;
+
+    // LED Colors
+    int32 active_color = 5;
+    repeated Color colors = 6;
+
+    // LED Modes
+    int32 active_mode = 7;
+    repeated Mode modes = 8;
+}
