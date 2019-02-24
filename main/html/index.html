@@ -277,6 +277,16 @@ document.addEventListener( 'DOMContentLoaded', function(){
                                 state[key][index][itemkey] = item[itemkey]
                             }
                         })
+                    } else if( json[key] instanceof Object ){
+                        if( state[key] == undefined )
+                            state[key] = {}
+                        let item = json[key]
+                        let index = item['i']
+                        for( let itemkey in item ){
+                            if( state[key][index] == undefined )
+                                state[key][index] = {}
+                            state[key][index][itemkey] = item[itemkey]
+                        }
                     } else {
                         state[key] = json[key]
                     }
