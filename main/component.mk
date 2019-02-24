@@ -6,4 +6,5 @@
 # COMPONENT_EMBED_FILES := html/index.html
 # COMPONENT_EMBED_TXTFILES := html/index.html
 
-CFLAGS += -pedantic -Wall
+CFLAGS += -Wall
+CPPFLAGS += -Wall
