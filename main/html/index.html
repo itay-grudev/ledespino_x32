@@ -240,7 +240,7 @@ document.addEventListener( 'DOMContentLoaded', function(){
     // Connect to the server, pull status and send updates
     function initWebsocket(){
         // Initialise a WebSocket to the device
-        ws = new WebSocket( `ws://${location.hostname}:8765` )
+        ws = new WebSocket( `ws://${location.host}/ws` )
 
         // Reconnect on connection close
         ws.onclose =( e )=> {
