@@ -2,7 +2,7 @@
 // @compilation_level ADVANCED_OPTIMIZATIONS
 // @output_file_name default.js
 // ==/ClosureCompiler==
-function rgb2hsv( c ) {
+function rgb2hsv( c, o ) {
     let rabs, gabs, babs, rr, gg, bb, h, s, v, diff, diffc, percentRoundFn;
     rabs = c['r'] / 255;
     gabs = c['g'] / 255;
@@ -32,10 +32,11 @@ function rgb2hsv( c ) {
             h -= 1;
         }
     }
-    return {
-        'h': h * Math.PI * 2,
-        's': s,
-        'v': v
-    };
+
+    o = o || {}
+    o['h'] = h * Math.PI * 2
+    o['s'] = s
+    o['v'] = v
+    return o
 }
 window['rgb2hsv'] = rgb2hsv;
