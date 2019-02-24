@@ -12,7 +12,10 @@ document.addEventListener( 'DOMContentLoaded', function(){
     function rlum(a){var b=1/12.92,c=a.r/255,d=a.g/255;return a=a.b/255,.2126*(.03928>=c?c*b:Math.pow((c+.055)/1.055,2.4))+.7152*(.03928>=d?d*b:Math.pow((d+.055)/1.055,2.4))+.0722*(.03928>=a?a*b:Math.pow((a+.055)/1.055,2.4))}
     function rgb2txt(c){return`rgb(${c.r}, ${c.g}, ${c.b})`};
 
-    var hsv = { h: 0, s: 1, v: 1}, rgb = hsv2rgb( hsv ), elm, ctx
+    var state = {}
+    var hsv = { h: 0, s: 1, v: 1}, rgb = hsv2rgb( hsv ), elm, ctx, ws, q = [], ss, cs
+
+    initWebsocket()
 
     // Initialise and render the Color Picker
     elm = document.getElementById( 'cp' )
@@ -28,7 +31,7 @@ document.addEventListener( 'DOMContentLoaded', function(){
         hsv.v = this.value / 100
         updateActiveColor()
     })
-    document.querySelectorAll( '#s, #v' ).forEach( function(){
+    document.querySelectorAll( '#s, #v' ).forEach(()=>{
         this.addEventListener( 'change', saveColor )
     })
 
@@ -38,20 +41,168 @@ document.addEventListener( 'DOMContentLoaded', function(){
 
     // Replace the current active color
     function setActiveColor( c ){
-        hsv = c
+        rgb = c
+        hsv = rgb2hsv( rgb )
         document.getElementById('s').value = hsv.s * 100
         document.getElementById('v').value = hsv.v * 100
-        updateActiveColor()
+        updateActiveColor( false )
     }
 
     // Update the active color visualisation
-    function updateActiveColor(){
-        rgb = hsv2rgb( hsv )
-        document.querySelector('#c .a').style.background = rgb2txt( rgb )
+    function updateActiveColor( setrgb = true ){
+        if( setrgb ) rgb = hsv2rgb( hsv )
         document.body.style.background = rgb2txt( rgb )
         document.body.className =((rlum( rgb) + 0.05) / (rlum( {r: 255,g: 255,b: 255} ) + 0.05)) > 0.6 ? 'light' : 'dark'
         updateColorPicker()
     }
+
+    // Connect to the server, pull status and send updates
+    function initWebsocket(){
+        // Initialise a WebSocket to the device
+        ws = new WebSocket( `ws://${location.hostname}:8765` )
+
+        // Reconnect on connection close
+        ws.onclose =( e )=> {
+            if( e.code != 1000 ){ // Normal close
+                console.warn( `WebSocket connection forcefully closed (${e.code})! Reconnecting...` )
+                setTimeout( initWebsocket, 5000 )
+            }
+        }
+
+        // Reconnect on connection server error
+        ws.onerror =( e )=> {
+            if( e.code > 1000 ){
+                console.warn( "WebSocket connection error (${e.code})! Reconnecting..." )
+                setTimeout( initWebsocket, 5000 )
+            }
+        }
+
+        // Handle websocket messages
+        ws.onmessage =( event )=>{
+            if( typeof event.data == "string" ){
+                let callbacks = new Map()
+                var json = JSON.parse( event.data )
+                for( let key in json ){
+                    if( json[key] instanceof Array ){
+                        if( state[key] == undefined )
+                            state[key] = {}
+                        json[key].forEach(( item )=>{
+                            let index = item['i']
+                            for( let itemkey in item ){
+                                if( state[key][index] == undefined )
+                                    state[key][index] = {}
+                                state[key][index][itemkey] = item[itemkey]
+                            }
+                        })
+                    } else {
+                        state[key] = json[key]
+                    }
+                    switch( key ){
+                        case "n":
+                            callbacks.set( renderTitle )
+                        case "w":
+                        case "s":
+                        case "h":
+                            callbacks.set( renderSettings )
+                            break;
+                        case "c":
+                        case "a":
+                            callbacks.set( renderColors )
+                            break;
+                        case "m":
+                        case "q":
+                            callbacks.set( renderModes )
+                            break;
+                    }
+                }
+                callbacks.forEach(( params, func )=>{ func.call( params ) })
+            }
+        }
+    }
+
+    function sendMessage( m ){
+        ws.send( m.m )
+        // q.push( { m: m, s: cs += 1 } )
+        // sendMessageQueue()
+    }
+
+    function sendMessageQueue(){
+        while( q.length ){
+            let m = q.shift()
+            if( m.s > ss ){
+                try {
+                    ws.send( m.m )
+                } catch ( e ){
+                    console.error( e )
+                    q.unshift( q )
+                    break
+                }
+                ss += 1
+            }
+        }
+    }
+
+    function renderTitle(){
+        document.querySelector( 'title' ).text = state['n'];
+        document.querySelector( 'h1' ).innerText = state['n'];
+    }
+
+    function renderColors(){
+        let colors = document.getElementById( 'colors' )
+        for( let index in state['c'] ){
+            let color = state['c'][index]
+            let elm = document.getElementById( 'c' + color['i'] )
+            if( elm == undefined ){
+                elm = document.createElement( 'a' )
+                elm.id = 'c' + color['i']
+                colors.appendChild( elm )
+                // Attach event handler
+                elm.addEventListener( 'click', ( e )=>{
+                    setActiveColor( hex2rgb( color['c'] ) )
+                    e.preventDefault()
+                })
+            }
+            elm.style.backgroundColor = '#' + color['c']
+            if( color['i'] == state['a'] ) {
+                if( elm.className != 'a' ){
+                    elm.className = 'a'
+                    setActiveColor( hex2rgb( color['c'] ) )
+                }
+            }
+            else elm.className = ''
+        }
+        //
+        // let color = document.querySelector( '#colors .a' )
+        // if( color != null ) color.className = ''
+        // document.querySelector( `#colors a:nth-child(${state['a']})` ).className = 'a'
+        // setActiveColor( hex2rgb( state['c'] ) )
+    }
+
+    function renderModes(){
+        let modes = document.getElementById( 'modes' )
+        for( let index in state['m'] ){
+            let mode = state['m'][index]
+            let elm = document.getElementById( 'm' + mode['i'] )
+            if( elm == null ){
+                elm = document.createElement( 'a' )
+                elm.id = 'm' + mode['i']
+                modes.appendChild( elm )
+            }
+            elm.innerHTML = mode['n']
+            if( mode['i'] == state['a'] ) elm.className = 'a'
+            else elm.className = ''
+        }
+    }
+
+    function renderSettings(){
+        document.querySelector ('[name=w]' ).options[state['w']].selected = 'selected';
+        document.querySelector( '[name=s]' ).value = state['s'];
+        document.querySelector( '[name=h]' ).value = state['h'];
+        document.querySelector( '[name=n]' ).value = state['n'];
+    }
+
+
+    return;
 
     var dataInt, primaryLoad = true;
     // Color chooser
@@ -116,7 +267,7 @@ document.addEventListener( 'DOMContentLoaded', function(){
               t.style.background = '#'+res['c'][i];
               if( i == res['a'] ){
                   t.className = 'a';
-                  setActiveColor( rgb2hsv( hex2rgb( res['c'][i] ) ) )
+                  setActiveColor( hex2rgb( res['c'][i] ) )
               }
               else t.className = '';
               t = document.getElementById('m'+i);
@@ -424,16 +575,7 @@ input:focus,select:focus{padding:17px 7px;border-width:3px}
 <main>
   <h1></h1>
   <h2>Colors</h2>
-  <nav id="c">
-    <a id="c0"></a>
-    <a id="c1"></a>
-    <a id="c2"></a>
-    <a id="c3"></a>
-    <a id="c4"></a>
-    <a id="c5"></a>
-    <a id="c6"></a>
-    <a id="c7"></a>
-  </nav>
+  <nav id="colors"></nav>
   <div>
       <canvas id="cp"></canvas>
       <div>
@@ -446,16 +588,7 @@ input:focus,select:focus{padding:17px 7px;border-width:3px}
       </div>
   </div>
   <h2>Mode</h2>
-  <nav>
-    <a id="m0">Static Color</a>
-    <a id="m1">HSV Fade</a>
-    <a id="m2">Speed Up</a>
-    <a id="m3">Brightness Up</a>
-    <a id="m4">Off</a>
-    <a id="m5">Random Fade</a>
-    <a id="m6">Speed Down</a>
-    <a id="m7">Brightness Down</a>
-  </nav>
+  <nav id="modes"></nav>
   <h2 id="settings">Settings</h2>
   <form action="/set" class="hdn" method="post">
     <b>Device name</b>

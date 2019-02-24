@@ -1,28 +1,28 @@
 {
-    "a": "6",
-    "c": [
-        "00f614",
-        "ffff00",
-        "00e842",
-        "00aeff",
-        "ff0042",
-        "008080",
-        "800080",
-        "ff7f00"
-    ],
-    "m": "1",
-    "n": "Ledespino",
-    "h": "ledespino",
-    "s": "Ledespino",
     "w": "0",
-    "q": [
-        "Static Color",
-        "HSV Fade",
-        "Speed Up",
-        "Brightness Up",
-        "Off",
-        "Random Fade",
-        "Speed Down",
-        "Brightness Down"
-    ]
+    "s": "Ledespino",
+    "h": "ledespino",
+    "n": "Ledespino",
+    "c": [
+        { "i": 0, "c": "00f614" },
+        { "i": 1, "c": "ffff00" },
+        { "i": 2, "c": "00e842" },
+        { "i": 3, "c": "00aeff" },
+        { "i": 4, "c": "ff0042" },
+        { "i": 5, "c": "008080" },
+        { "i": 6, "c": "800080" },
+        { "i": 7, "c": "ff7f00" }
+    ],
+    "a": "1",
+    "m": [
+        { "i": 0, "n": "Static Color" },
+        { "i": 1, "n": "HSV Fade" },
+        { "i": 2, "n": "Speed Up" },
+        { "i": 3, "n": "Brightness Up" },
+        { "i": 4, "n": "Off" },
+        { "i": 5, "n": "Random Fade" },
+        { "i": 6, "n": "Speed Down" },
+        { "i": 7, "n": "Brightness Down" }
+    ],
+    "q": "2"
 }

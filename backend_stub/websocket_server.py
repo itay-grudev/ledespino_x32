@@ -9,7 +9,7 @@ async def new_socket(websocket, path):
     await websocket.send( setup )
 
     while True:
-        await asyncio.sleep( 5 )
+        await asyncio.sleep( 2 )
         status = open( pathlib.Path(__file__).parent / 'status', 'r' ).read()
         await websocket.send( status )
 
