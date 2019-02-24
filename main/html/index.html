@@ -9,6 +9,7 @@ function hex2rgb(a){return a=a.replace("#",""),{r:parseInt(a.substring(0,2),16),
 function rgb2hsv(h,c){var k;var e=h.r/255;var f=h.g/255;var g=h.b/255;var b=Math.max(e,f,g);var l=b-Math.min(e,f,g);var d=function(a){return(b-a)/6/l+.5};if(0==l)var a=k=0;else{k=l/b;var m=d(e);var n=d(f);d=d(g);e===b?a=d-n:f===b?a=1/3+m-d:g===b&&(a=2/3+n-m);0>a?a+=1:1<a&&--a}c=c||{};c.h=a*Math.PI*2;c.s=k;c.v=b;return c};
 function hsv2rgb(a){ function b(a,b,c,d){d.r=f(255*a),d.g=f(255*b),d.b=f(255*c)}var c=Math,d=c.max,e=c.min,f=c.round;c=c.PI,out={r:0,g:0,b:0},c=a.h/c*3%6;var g=d(0,e(a.s,1));if(a=d(0,e(a.v,1)),g){d=(1-g)*a,e=a-d,g=c%1;var h=0|c;0==h&&b(a,e*c+d,d,out),1==h&&b(e*(1-g)+d,a,d,out),2==h&&b(d,a,e*g+d,out),3==h&&b(d,e*(1-g)+d,a,out),4==h&&b(e*g+d,d,a,out),5==h&&b(a,d,e*(1-g)+d,out)}else out.r=out.g=out.b=Math.ceil(255*a);return out}
 function rlum(a){var b=1/12.92,c=a.r/255,d=a.g/255;return a=a.b/255,.2126*(.03928>=c?c*b:Math.pow((c+.055)/1.055,2.4))+.7152*(.03928>=d?d*b:Math.pow((d+.055)/1.055,2.4))+.0722*(.03928>=a?a*b:Math.pow((a+.055)/1.055,2.4))}
+function rgb2txt(c){return`rgb(${c.r}, ${c.g}, ${c.b})`};
 class ColorPicker extends Object {
     constructor( element ){
         super()
@@ -25,8 +26,8 @@ class ColorPicker extends Object {
 
     setColor( color ){
         if( ! this.edit ) {
-            this.render()
             rgb2hsv( hex2rgb( color ), this )
+            this.render()
         }
     }
 
@@ -175,7 +176,8 @@ class ColorPicker extends Object {
 
     _hueSelectStart( e ){
         this.r = this.h
-        this.hueSelect = 1;
+        this.hueSelect = 1
+        this.edit = true
         e.preventDefault()
         this._hueSelectMove( e )
     }
@@ -234,14 +236,6 @@ document.addEventListener( 'DOMContentLoaded', function(){
         renderColors()
     }
     window.addEventListener( 'resize', colorpicker.render )
-
-    // Update the active color visualisation
-    function updateActiveColor(){
-        let rgb = hex2rgb( state['c'][state['a']]['c'] )
-        document.body.style.background = '#' + rgb2hex( rgb )
-        document.body.className =((rlum( rgb) + 0.05) / (rlum( {r: 255,g: 255,b: 255} ) + 0.05)) > 0.6 ? 'light' : 'dark'
-        colorpicker.render()
-    }
 
     // Connect to the server, pull status and send updates
     function initWebsocket(){
@@ -353,11 +347,12 @@ document.addEventListener( 'DOMContentLoaded', function(){
             }
             elm.style.backgroundColor = '#' + color['c']
             if( color['i'] == state['a'] ) {
-                if( elm.className != 'a' ){
-                    elm.className = 'a'
-                    colorpicker.setColor( color['c'] )
-                    updateActiveColor()
-                }
+                elm.className = 'a'
+                colorpicker.setColor( color['c'] )
+                document.body.style.background = '#' + color['c']
+                let rgb = hex2rgb( color['c'] )
+                document.body.className =((rlum(rgb) + 0.05) / (rlum( hex2rgb('#ffffff' )) + 0.05)) > 0.6 ? 'light' : 'dark'
+                // if( elm.className != 'a' ){}
             }
             else elm.className = ''
         }
