@@ -24,13 +24,23 @@ class ColorPicker extends Object {
     }
 
     setColor( color ){
-        rgb2hsv( hex2rgb( color ), this )
-        if( ! this.edit ) this.render()
+        if( ! this.edit ) {
+            this.render()
+            rgb2hsv( hex2rgb( color ), this )
+        }
     }
 
     html(){
         this.canvas = document.createElement( 'canvas' )
+        this.canvas.onmousedown =( e )=>{ this._hueSelectStart( e ) }
+        this.canvas.onmousemove =( e )=>{ this._hueSelectMove( e ) }
+        document.onmouseup =( e )=>{ this._hueSelectEnd( e ) }
+        this.canvas.addEventListener( 'touchstart', ( e )=>{ this._hueSelectStart( e ) }, false )
+        this.canvas.addEventListener( 'touchmove', ( e )=>{ this._hueSelectMove( e, true ) }, false )
+        this.canvas.addEventListener( 'touchend', ( e )=>{ this._hueSelectEnd( e ) }, false )
+        this.canvas.addEventListener( 'touchcancel', ( e )=>{ this._hueSelectCancel( e ) }, false )
         this.element.appendChild( this.canvas )
+
         let div = document.createElement( 'div' ), label
         this.element.appendChild( div )
 
@@ -163,6 +173,48 @@ class ColorPicker extends Object {
         }
     }
 
+    _hueSelectStart( e ){
+        this.r = this.h
+        this.hueSelect = 1;
+        e.preventDefault()
+        this._hueSelectMove( e )
+    }
+
+    _hueSelectEnd( e ){
+        if( ! this.hueSelect ) return
+        this.hueSelect = 0
+        e.preventDefault()
+    }
+
+    _hueSelectCancel( e ){
+        this.hueSelect = 0
+        this.h = this.r
+        this.render()
+        e.preventDefault()
+    }
+
+    _hueSelectMove( e, touch ){
+        if( ! this.hueSelect ) return
+
+        var x,y
+        // This is the current screen rectangle of canvas
+        var rect = this.canvas.getBoundingClientRect()
+
+        if( touch ){
+            x = e.changedTouches[0].clientX - rect.left
+            y = e.changedTouches[0].clientY - rect.top
+        } else {
+            // Recalculate mouse offsets to relative offsets
+            x = e.clientX - rect.left
+            y = e.clientY - rect.top
+        }
+
+        this.h = Math.atan2(y - rect.height / 2, rect.width / 2 - x) + Math.PI
+
+        this.render()
+
+        e.preventDefault()
+    }
 }
 
 document.addEventListener( 'DOMContentLoaded', function(){
@@ -181,6 +233,7 @@ document.addEventListener( 'DOMContentLoaded', function(){
         state['c'][state['a']]['c'] = rgb2hex( color )
         renderColors()
     }
+    window.addEventListener( 'resize', colorpicker.render )
 
     // Update the active color visualisation
     function updateActiveColor(){
@@ -347,57 +400,6 @@ document.addEventListener( 'DOMContentLoaded', function(){
       document.querySelector('form').classList.toggle('hdn');
       window.location = '#settings';
     }
-
-    function colorMove(e, touch){
-      if( ! pick ) return;
-      var x,y;
-      // This is the current screen rectangle of canvas
-      var rect = elm.getBoundingClientRect();
-
-      if ( touch ) {
-        x = e.changedTouches[0].clientX - rect.left;
-        y = e.changedTouches[0].clientY - rect.top;
-      } else {
-        // Recalculate mouse offsets to relative offsets
-        x = e.clientX - rect.left;
-        y = e.clientY - rect.top;
-      }
-
-      hsv.h = Math.atan2(y - rect.height / 2, rect.width / 2 - x) + Math.PI;
-      updateActiveColor()
-      return false;
-    }
-
-    function pickOn(e) {
-      pick = true;
-      colorMove(e);
-      return false;
-    }
-
-    function pickOff() {
-      if ( ! pick ) return;
-      pick = null;
-      clearInterval(dataInt);
-      var xhr = new XMLHttpRequest(), t = document.getElementById('c');
-      xhr.open('POST', '/set', true);
-      xhr.send('c' + Array.prototype.slice.call( t.children ).indexOf( t.querySelector('.a') ) + '=' + rgb2hex( rgb ));
-      // dataInt = setInterval(status, 5000);
-      return false;
-    }
-
-    function pickC() {
-      pick = null;
-      document.querySelector('#c .a').style.background = c;
-    }
-
-    elm.onmousedown = pickOn;
-    elm.onmousemove = colorMove;
-    document.onmouseup = pickOff;
-    elm.addEventListener('touchstart', pickOn, false);
-    elm.addEventListener('touchmove', function(e) { colorMove(e, true) }, false);
-    elm.addEventListener('touchend', pickOff, false);
-    elm.addEventListener('touchcancel', pickC, false);
-    window.addEventListener( 'resize', colorpicker.render )
 })
 </script>
 <title></title>

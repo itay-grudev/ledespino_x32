@@ -13,7 +13,7 @@ async def new_socket(websocket, path):
         status = open( pathlib.Path(__file__).parent / 'status', 'r' ).read()
         await websocket.send( status )
 
-start_server = websockets.serve( new_socket, 'localhost', 8765 )
+start_server = websockets.serve( new_socket, '0.0.0.0', 8765 )
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
