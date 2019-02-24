@@ -2,6 +2,7 @@
 
 import aiohttp
 import asyncio
+import json
 import os
 
 from aiohttp import web
@@ -12,35 +13,50 @@ from aiohttp import web
 WWW_DIR = os.path.join( os.path.dirname(__file__), '../main/html/' )
 JSON_DIR = os.path.dirname(__file__)
 
+device_json = open( os.path.join( JSON_DIR, 'setup.json'), 'r' ).read()
+status = open( os.path.join( JSON_DIR, 'status.json'), 'r' ).read()
+
 async def index(request):
-    index = open( os.path.join( WWW_DIR, 'index.html'), 'r' ).read()
+    index_body = open( os.path.join( WWW_DIR, 'index.html'), 'r' ).read()
     return web.Response(
-        body = index,
+        body = index_body,
         headers = {
             'Content-Type': 'text/html'
         }
     )
 
+sockets = []
+state = json.loads( device_json )
+
 async def websocket_handler( request ):
     ws = web.WebSocketResponse()
     await ws.prepare( request )
+    sockets.append( ws )
 
-    setup = open( os.path.join( JSON_DIR, 'setup.json'), 'r' ).read()
-    await ws.send_str( setup )
+    await ws.send_str( json.dumps( state ) )
 
-    while True:
-        await asyncio.sleep( 2 )
-        status = open( os.path.join( JSON_DIR, 'status.json'), 'r' ).read()
-        await ws.send_str( status )
-    # async for msg in ws:
-    #     if msg.type == aiohttp.WSMsgType.TEXT:
-    #         if msg.data == 'close':
-    #             await ws.close()
-    #         else:
-    #             await ws.send_str(msg.data + '/answer')
-    #     elif msg.type == aiohttp.WSMsgType.ERROR:
-    #         print('ws connection closed with exception %s' %
-    #               ws.exception())
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            state_changes = json.loads( msg.data )
+            for key in state_changes:
+                if isinstance( state_changes[key], dict ):
+                    index = state_changes[key]["i"]
+                    for _, item in enumerate( state[key] ):
+                        if item["i"] == index:
+                            for subkey in state_changes[key]:
+                                item[subkey] = state_changes[key][subkey]
+                else:
+                    state[key] = state_changes[key]
+            for socket in sockets:
+                if socket == ws:
+                    continue
+                try:
+                    await socket.send_str( msg.data )
+                except Exception as e:
+                    logger.error( 'Failed to send message ' + str(e) )
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            sockets.remove( ws )
+            print( 'ws connection closed with exception %s' % ws.exception() )
 
     return ws
 

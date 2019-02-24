@@ -231,8 +231,10 @@ document.addEventListener( 'DOMContentLoaded', function(){
     )
     colorpicker.render()
     colorpicker.onselect =( color )=>{
-        // TODO: state save
         state['c'][state['a']]['c'] = rgb2hex( color )
+        saveState({
+            c: state['c'][state['a']]
+        })
         renderColors()
     }
     window.addEventListener( 'resize', colorpicker.render )
@@ -301,8 +303,10 @@ document.addEventListener( 'DOMContentLoaded', function(){
         }
     }
 
-    function sendMessage( m ){
-        ws.send( m.m )
+    function saveState( m ){
+        ws.send(
+            JSON.stringify( m )
+        )
         // q.push( { m: m, s: cs += 1 } )
         // sendMessageQueue()
     }
@@ -339,8 +343,10 @@ document.addEventListener( 'DOMContentLoaded', function(){
                 colors.appendChild( elm )
                 // Attach event handlers
                 elm.addEventListener( 'click', ( e )=>{
-                    // TODO: state save
                     state['a'] = color['i']
+                    saveState({
+                        a: state['a']
+                    })
                     renderColors()
                     e.preventDefault()
                 })
@@ -369,8 +375,10 @@ document.addEventListener( 'DOMContentLoaded', function(){
                 modes.appendChild( elm )
                 // Attach event handlers
                 elm.addEventListener( 'click', ( e )=>{
-                    // TODO: state save
                     state['q'] = mode['i']
+                    saveState({
+                        q: state['q']
+                    })
                     renderModes()
                     e.preventDefault()
                 })
@@ -387,8 +395,6 @@ document.addEventListener( 'DOMContentLoaded', function(){
         document.querySelector( '[name=h]' ).value = state['h'];
         document.querySelector( '[name=n]' ).value = state['n'];
     }
-
-    return;
 
     // Settings Toggle
     document.getElementById('settings').onclick = function() {
