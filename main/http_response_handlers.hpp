@@ -1,10 +1,15 @@
 #include <esp_http_server.h>
 
+#include "led.hpp"
+
 extern wifi_config_t wifi_config;
-extern nvs_handle led_nvs;
 extern nvs_handle system_nvs;
+
+uint8_t mode = 0;
+
 extern esp_err_t err;
-extern uint8_t mode;
+
+extern nvs_handle LED::led_nvs;
 
 /**
  * GET /
@@ -40,7 +45,7 @@ esp_err_t http_status_handler( httpd_req_t *req )
 
     // Currently active color (0-8) from presets
     uint8_t a;
-    err = nvs_get_u8( led_nvs, "a", &a );
+    err = nvs_get_u8( LED::led_nvs, "a", &a );
     ESP_ERROR_CHECK( err );
 
     // Stores the colours loaded from NVS
@@ -51,7 +56,7 @@ esp_err_t http_status_handler( httpd_req_t *req )
     char key[2] = "0";
     for( uint8_t i = 0; i < 8; ++i ){
         key[0] = (char)(i + 48);
-        err = nvs_get_blob( led_nvs, key, &c[i], &rgb_size );
+        err = nvs_get_blob( LED::led_nvs, key, &c[i], &rgb_size );
         ESP_ERROR_CHECK( err );
     }
 

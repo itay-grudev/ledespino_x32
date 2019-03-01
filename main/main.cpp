@@ -13,12 +13,14 @@
 #include <esp_wifi.h>
 #include <esp_system.h>
 #include <esp_event_loop.h>
-#include <driver/ledc.h>
+#include <esp_event_loop.h>
+#include <Arduino.h>
 
 extern "C" {
     void app_main(void);
 }
 
+#include "led.hpp"
 #include "nvs.hpp"
 #include "constants.hpp"
 #include "http_response_handlers.hpp"
@@ -32,21 +34,7 @@ wifi_config_t wifi_config = {};
 // System NVS
 nvs_handle system_nvs;
 
-// LED NVS
-nvs_handle led_nvs;
-
-// Effect stages
-uint8_t mode = 0;
-
-// Front End Initial colours
-const char white[3]  = {255, 255, 255};
-const char yellow[3] = {255, 255, 0};
-const char green[3] = {0, 232, 66};
-const char blue[3] = {0, 174, 255};
-const char red[3] = {255, 0, 66};
-const char teal[3] = {0, 128, 128};
-const char lilac[3] = {128, 0, 128};
-const char orange[3] = {255, 127, 0};
+uint8_t hex2bin( const char * );
 
 httpd_handle_t start_webserver()
 {
@@ -221,128 +209,56 @@ void app_main()
     err = nvs_commit( system_nvs );
     ESP_ERROR_CHECK( err );
 
-    /**
-     * LED Program Initialisation
-     */
-    // Load the LED NVS namespace
-    err = nvs_open( "led", NVS_READWRITE, &led_nvs );
-    ESP_ERROR_CHECK( err );
-
-    // Initialise default colours and modes
-    uint8_t a;
-    err = nvs_get_u8( led_nvs, "a", &a );
-    if( err == ESP_ERR_NVS_NOT_FOUND ){
-        ESP_LOGW( "LED", "Initialising default colours." );
-
-        a = 0;
-        err = nvs_set_u8( led_nvs, "a", a );
-        ESP_ERROR_CHECK( err );
-
-        char key[2] = "0";
-        for( uint8_t i = 0; i < 8; ++i ){
-            key[0] = (char)(i + 48);
-            switch( i ) {
-                case 0: err = nvs_set_blob( led_nvs, key, white, 3 ); break;
-                case 1: err = nvs_set_blob( led_nvs, key, green, 3 ); break;
-                case 2: err = nvs_set_blob( led_nvs, key, yellow, 3 ); break;
-                case 3: err = nvs_set_blob( led_nvs, key, blue, 3 ); break;
-                case 4: err = nvs_set_blob( led_nvs, key, red, 3 ); break;
-                case 5: err = nvs_set_blob( led_nvs, key, teal, 3 ); break;
-                case 6: err = nvs_set_blob( led_nvs, key, lilac, 3 ); break;
-                case 7: err = nvs_set_blob( led_nvs, key, orange, 3 ); break;
-            }
-            ESP_ERROR_CHECK( err );
-        }
-    }
-
-    err = nvs_commit( led_nvs );
-    ESP_ERROR_CHECK( err );
 
     /**
-     * LED Fade
+     * LED Program
      */
-    // LEDC Timer configuration
-    ledc_timer_config_t ledc_timer;
-    ledc_timer.duty_resolution = LEDC_TIMER_13_BIT; // Resolution of PWM duty
-    ledc_timer.freq_hz = 5000; // Frequency of PWM signal
-    ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE; // Timer mode
-    ledc_timer.timer_num = LEDC_TIMER_0; // Timer index
-    err = ledc_timer_config( &ledc_timer );
-    ESP_ERROR_CHECK( err );
+    LED::setup();
+    LED::run();
+    //
+    // Serial.begin(115200);
+    //
+    // Serial.println("binary color ready");
+    // String command;
+    // while( Serial.available() > 0 ) {
+    //     char byte;
+    //     Serial.readBytes(&byte, 1);
+    //     if( byte == '\n' )
+    //     {
+    //         if ( command[0] == 'b' ) {
+    //             Serial.println("binary color");
+    //             CRGB color;
+    //             color.r = hex2bin( command.substring(1, 3).c_str() );
+    //             color.g = hex2bin( command.substring(3, 5).c_str() );
+    //             color.b = hex2bin( command.substring(5, 7).c_str() );
+    //         }
+    //
+    //         // Discard the current command
+    //         command = "";
+    //     } else {
+    //         command += byte;
+    //         // Discard commands longer than 255 symbols
+    //         if( command.length() > 255 )
+    //             command = "";
+    //     }
+    // }
+}
 
-    // Individual channel configuration of the LED Controller
-    // * controller's channel number
-    // * output duty cycle, set initially to 0
-    // * GPIO number where LED is connected to
-    // * speed mode, either high or low
-    // * timer servicing selected channel
-    //   Note: if different channels use one timer,
-    //         then frequency and bit_num of these channels
-    //         will be the same
-    ledc_channel_config_t ledc_channel[3];
-    // Red
-    ledc_channel[0].channel    = LEDC_CHANNEL_0;
-    ledc_channel[0].duty       = 0;
-    ledc_channel[0].gpio_num   = (CONFIG_LED_RED_PIN);
-    ledc_channel[0].speed_mode = LEDC_HIGH_SPEED_MODE;
-    ledc_channel[0].hpoint     = 0;
-    ledc_channel[0].timer_sel  = LEDC_TIMER_0;
-    // Green
-    ledc_channel[1].channel    = LEDC_CHANNEL_1;
-    ledc_channel[1].duty       = 0;
-    ledc_channel[1].gpio_num   = (CONFIG_LED_GREEN_PIN);
-    ledc_channel[1].speed_mode = LEDC_HIGH_SPEED_MODE;
-    ledc_channel[1].hpoint     = 0;
-    ledc_channel[1].timer_sel  = LEDC_TIMER_0;
-    // Blue
-    ledc_channel[2].channel    = LEDC_CHANNEL_2;
-    ledc_channel[2].duty       = 0;
-    ledc_channel[2].gpio_num   = (CONFIG_LED_BLUE_PIN);
-    ledc_channel[2].speed_mode = LEDC_HIGH_SPEED_MODE;
-    ledc_channel[2].hpoint     = 0;
-    ledc_channel[2].timer_sel  = LEDC_TIMER_0;
-
-    // Configure the LEDC channels
-    const uint8_t ledc_channel_count = (
-        sizeof( ledc_channel ) /
-        sizeof( ledc_channel_config_t )
-    );
-    for( int i = 0; i < ledc_channel_count; ++i ){
-        err = ledc_channel_config( &ledc_channel[i] );
-        ESP_ERROR_CHECK( err );
-    }
-
-    // Initialise fade service
-    err = ledc_fade_func_install( 0 );
-    ESP_ERROR_CHECK( err );
-
-    ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 8191*0.95, 1000 );
-    ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
-    ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 0, 1000 );
-    ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
-    ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 0, 1000 );
-    ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
-    vTaskDelay( 1000 / portTICK_PERIOD_MS );
-
-    // LED Loop
-    while( true ){
-        ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 8191*0.78, 3500 );
-        ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-        ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 0, 3500 );
-        ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-        ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 8191, 3500 );
-        ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-        ledc_set_fade_with_time( ledc_channel[1].speed_mode, ledc_channel[1].channel, 0, 3500 );
-        ledc_fade_start( ledc_channel[1].speed_mode, ledc_channel[1].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-        ledc_set_fade_with_time( ledc_channel[0].speed_mode, ledc_channel[0].channel, 8191*0.95, 3500 );
-        ledc_fade_start( ledc_channel[0].speed_mode, ledc_channel[0].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-        ledc_set_fade_with_time( ledc_channel[2].speed_mode, ledc_channel[2].channel, 0, 3500 );
-        ledc_fade_start( ledc_channel[2].speed_mode, ledc_channel[2].channel, LEDC_FADE_NO_WAIT );
-        vTaskDelay( 3500 / portTICK_PERIOD_MS );
-    }
+uint8_t hex2bin( const char *s )
+{
+  int ret = 0;
+  int i;
+  for( i=0; i<2; i++ )
+  {
+    char c = *s++;
+    int n=0;
+    if( '0'<=c && c<='9' )
+      n = c-'0';
+    else if( 'a'<=c && c<='f' )
+      n = 10 + c-'a';
+    else if( 'A'<=c && c<='F' )
+      n = 10 + c-'A';
+    ret = n + ret*16;
+  }
+  return ret;
 }
