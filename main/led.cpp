@@ -120,6 +120,7 @@ void LED::setup(){
     d->leds = new CRGB[1];
     // FastLED.addLeds<P9813, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
     FastLED.addLeds<P9813, 12, 14, RGB>( d->leds, 1 );
+    FastLED.setCorrection( CRGB( 255, 210, 220 ) );
 }
 
 void LED::showColor( CRGB color ){

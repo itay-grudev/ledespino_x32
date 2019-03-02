@@ -203,6 +203,7 @@ public:
                 break;
             case WEBSOCKET_TEXT:
                 changes = cJSON_Parse( msg );
+                ESP_LOGI( TAG, "MSG: %s", msg );
 
                 if( changes ){
                     // Color Preview
