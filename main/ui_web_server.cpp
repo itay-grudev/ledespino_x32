@@ -1,22 +1,47 @@
+#include "ui_web_server.hpp"
+
+#include <mdns.h>
+#include <esp_log.h>
 #include <esp_http_server.h>
 
-#include "led.hpp"
+class UIWebServerPrivate{
+public:
+    static httpd_handle_t server;
+    static esp_err_t http_root_handler( httpd_req_t * );
+};
 
-extern wifi_config_t wifi_config;
-extern nvs_handle system_nvs;
+httpd_handle_t UIWebServerPrivate::server = NULL;
+UIWebServerPrivate* UIWebServer::d = new UIWebServerPrivate;
 
-uint8_t mode = 0;
+void UIWebServer::start(){
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.server_port = CONFIG_HTTP_SERVER_PORT;
 
-extern esp_err_t err;
+    // Start the httpd server
+    if( httpd_start( &d->server, &config ) == ESP_OK) {
+        // Set URI handlers
+        httpd_uri http_root_uri = {
+            "/",
+            HTTP_GET,
+            &d->http_root_handler,
+            NULL
+        };
+        httpd_register_uri_handler( d->server, &http_root_uri );
 
-extern nvs_handle LED::led_nvs;
+        // Register the mDNS service
+        mdns_service_add( NULL, "_http", "_tcp", config.server_port, NULL, 0 );
 
-/**
- * GET /
- * Root path response handler
- */
-esp_err_t http_root_handler( httpd_req_t *req )
-{
+        ESP_LOGW( "SYS", "Started HTTP server on port: '%d'", config.server_port );
+    } else {
+        ESP_LOGE( "SYS", "Error: HTTP server not initialized!" );
+    }
+}
+
+void UIWebServer::stop(){
+    httpd_stop( d->server );
+}
+
+esp_err_t UIWebServerPrivate::http_root_handler( httpd_req_t * req ){
     ESP_LOGI( "HTTPD", "/" );
     extern const unsigned char index_start[] asm( "_binary_index_html_start" );
     extern const unsigned char index_end[]   asm( "_binary_index_html_end" );
@@ -25,90 +50,84 @@ esp_err_t http_root_handler( httpd_req_t *req )
     httpd_resp_send( req, (char *)index_start, index_size );
     return ESP_OK;
 }
-httpd_uri http_root_uri = {
-    "/",
-    HTTP_GET,
-    http_root_handler,
-    NULL
-};
 
-/**
- * GET /status
- * Status path response handler
- */
-const char json[] = "{\"a\":\"%d\",\"c\": [\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\"],\"m\":\"%d\",\"n\":\"%s\",\"h\":\"%s\",\"s\":\"%s\",\"w\":\"%d\"}";
-esp_err_t http_status_handler( httpd_req_t *req )
-{
-    ESP_LOGI( "HTTPD", "/status" );
-
-    char temp[sizeof(json) + 8 * 6 + 129];
-
-    // Currently active color (0-8) from presets
-    uint8_t a;
-    err = nvs_get_u8( LED::led_nvs, "a", &a );
-    ESP_ERROR_CHECK( err );
-
-    // Stores the colours loaded from NVS
-    uint8_t c[8][3];
-
-    // Get colours from NVS
-    size_t rgb_size = 3;
-    char key[2] = "0";
-    for( uint8_t i = 0; i < 8; ++i ){
-        key[0] = (char)(i + 48);
-        err = nvs_get_blob( LED::led_nvs, key, &c[i], &rgb_size );
-        ESP_ERROR_CHECK( err );
-    }
-
-    // Load the device name from NVS
-    char *device_name = NULL, *hostname = NULL;
-    err = nvs_get_str2( system_nvs, "device_name", device_name );
-    ESP_ERROR_CHECK( err );
-    err = nvs_get_str2( system_nvs, "hostname", hostname );
-    ESP_ERROR_CHECK( err );
-
-    snprintf(
-        temp,
-        sizeof(json) + 8 * 6 + 129,
-        json,
-        a,
-        c[0][0], c[0][1], c[0][2],
-        c[1][0], c[1][1], c[1][2],
-        c[2][0], c[2][1], c[2][2],
-        c[3][0], c[3][1], c[3][2],
-        c[4][0], c[4][1], c[4][2],
-        c[5][0], c[5][1], c[5][2],
-        c[6][0], c[6][1], c[6][2],
-        c[7][0], c[7][1], c[7][2],
-        mode,
-        device_name,
-        hostname,
-        wifi_config.sta.ssid,
-        0
-    );
-
-    httpd_resp_set_type( req, "text/json" );
-    httpd_resp_sendstr( req, temp );
-    return ESP_OK;
-}
-httpd_uri http_status_uri = {
-    "/status",
-    HTTP_GET,
-    http_status_handler,
-    NULL
-};
+// /**
+//  * GET /status
+//  * Status path response handler
+//  */
+// const char json[] = "{\"a\":\"%d\",\"c\": [\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\"],\"m\":\"%d\",\"n\":\"%s\",\"h\":\"%s\",\"s\":\"%s\",\"w\":\"%d\"}";
+// esp_err_t http_status_handler( httpd_req_t *req )
+// {
+//     ESP_LOGI( "HTTPD", "/status" );
+//
+//     char temp[sizeof(json) + 8 * 6 + 129];
+//
+//     // Currently active color (0-8) from presets
+//     uint8_t a;
+//     err = nvs_get_u8( LED::led_nvs, "a", &a );
+//     ESP_ERROR_CHECK( err );
+//
+//     // Stores the colours loaded from NVS
+//     uint8_t c[8][3];
+//
+//     // Get colours from NVS
+//     size_t rgb_size = 3;
+//     char key[2] = "0";
+//     for( uint8_t i = 0; i < 8; ++i ){
+//         key[0] = (char)(i + 48);
+//         err = nvs_get_blob( LED::led_nvs, key, &c[i], &rgb_size );
+//         ESP_ERROR_CHECK( err );
+//     }
+//
+//     // Load the device name from NVS
+//     char *device_name = NULL, *hostname = NULL;
+//     err = nvs_get_str2( system_nvs, "device_name", device_name );
+//     ESP_ERROR_CHECK( err );
+//     err = nvs_get_str2( system_nvs, "hostname", hostname );
+//     ESP_ERROR_CHECK( err );
+//
+//     snprintf(
+//         temp,
+//         sizeof(json) + 8 * 6 + 129,
+//         json,
+//         a,
+//         c[0][0], c[0][1], c[0][2],
+//         c[1][0], c[1][1], c[1][2],
+//         c[2][0], c[2][1], c[2][2],
+//         c[3][0], c[3][1], c[3][2],
+//         c[4][0], c[4][1], c[4][2],
+//         c[5][0], c[5][1], c[5][2],
+//         c[6][0], c[6][1], c[6][2],
+//         c[7][0], c[7][1], c[7][2],
+//         mode,
+//         device_name,
+//         hostname,
+//         wifi_config.sta.ssid,
+//         0
+//     );
+//
+//     httpd_resp_set_type( req, "text/json" );
+//     httpd_resp_sendstr( req, temp );
+//     return ESP_OK;
+// }
+// httpd_uri http_status_uri = {
+//     "/status",
+//     HTTP_GET,
+//     http_status_handler,
+//     NULL
+// };
 
 /**
  * POST /set
  * Set path response handler
  */
-esp_err_t http_set_handler( httpd_req_t *req )
-{
-    ESP_LOGI( "HTTPD", "/set" );
-
-    // char ssid[32];
-    // char password[64];
-
+// esp_err_t http_set_handler( httpd_req_t *req )
+// {
+//     ESP_LOGI( "HTTPD", "/set" );
+//
+//     char ssid[32];
+//     char password[64];
+//
 //     String password, temp, error="";
 //     char temp2[64];
 //     bool storeConfig = false;
@@ -207,11 +226,11 @@ esp_err_t http_set_handler( httpd_req_t *req )
 //         server.sendHeader("Redirect", "/");
 //         server.send(200);
 //     }
-    return ESP_OK;
-}
-httpd_uri http_set_uri = {
-    "/set",
-    HTTP_GET,
-    http_set_handler,
-    NULL
-};
+//     return ESP_OK;
+// }
+// httpd_uri http_set_uri = {
+//     "/set",
+//     HTTP_GET,
+//     http_set_handler,
+//     NULL
+// };
