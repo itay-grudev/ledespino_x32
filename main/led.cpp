@@ -54,7 +54,7 @@ better_fade_start:
 
         // Animate HSV
         while( true ){
-            for( hsv.h = 0 ; hsv.h < 192 ; ++hsv.h ){
+            for( hsv.h = 0 ;; ++hsv.h ){
                 if( better_fade_interrupt ) goto better_fade_start;
                 hsv2rgb_rainbow( hsv, leds[0] );
                 // ESP_LOGI("FADE", "%d %d %d", leds[0].r, leds[0].g, leds[0].b);
