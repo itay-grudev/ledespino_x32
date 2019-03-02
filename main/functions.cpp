@@ -1,6 +1,7 @@
 #include "functions.hpp"
 
 #include <cstring>
+#include <assert.h>
 
 esp_err_t nvs_get_str2( nvs_handle handle, const char *key, char *&value )
 {
@@ -42,21 +43,22 @@ esp_err_t nvs_get_set_default_u8( nvs_handle handle, const char *key, uint8_t *v
     return err;
 }
 
-uint8_t hex2bin( const char *s )
+uint32_t hex2bin( char *s )
 {
-  int ret = 0;
-  int i;
-  for( i=0; i<2; i++ )
-  {
+  uint8_t len = strlen( s );
+  assert( len <= 8 ); // Meant for conversion of colors and capped at uint32_t
+  uint32_t ret = 0;
+  for( int i = 0; i < len; ++i ){
     char c = *s++;
-    int n=0;
-    if( '0'<=c && c<='9' )
-      n = c-'0';
-    else if( 'a'<=c && c<='f' )
-      n = 10 + c-'a';
-    else if( 'A'<=c && c<='F' )
-      n = 10 + c-'A';
-    ret = n + ret*16;
+    uint32_t n = 0;
+    if( '0' <= c && c <= '9' )
+      n = c - '0';
+    else if( 'a' <= c && c <= 'f' )
+      n = 10 + c - 'a';
+    else if( 'A' <= c && c<= 'F' )
+      n = 10 + c - 'A';
+    ret <<= 4;
+    ret += n;
   }
   return ret;
 }

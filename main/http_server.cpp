@@ -139,7 +139,7 @@ public:
                   strstr( buffer, "Upgrade: websocket" )
                 ){
                   ESP_LOGI( TAG, "GET /ws Upgrade: websocket");
-                  ws_server_add_client( connection, buffer, buffer_len, "/ws", websocket_callback );
+                  ws_server_add_client( connection, buffer, buffer_len, (char*)"/ws", websocket_callback );
                   netbuf_delete( input_buffer );
                 }
 
@@ -185,7 +185,7 @@ public:
 
     static void websocket_callback( uint8_t num ,WEBSOCKET_TYPE_t type, char* msg, uint64_t len ){
         const static char* TAG = "WEBS";
-        int value;
+        cJSON *changes, *obj, *key, *index, *value;
 
         switch( type ){
             case WEBSOCKET_CONNECT:
@@ -202,16 +202,57 @@ public:
                 ESP_LOGI( TAG, "client %i was disconnected due to an error", num );
                 break;
             case WEBSOCKET_TEXT:
-                if( len ) {
-                    // switch(msg[0]) {
-                    //     case 'L':
-                    //         if(sscanf(msg,"L%i",&value)) {
-                    //             ESP_LOGI(TAG,"LED value: %i",value);
-                    //             led_duty(value);
-                    //             ws_server_send_text_all_from_callback(msg,len); // broadcast it!
-                    //         }
-                    //         break;
-                    // }
+                changes = cJSON_Parse( msg );
+
+                if( changes ){
+                    // Color Preview
+                    key = cJSON_GetObjectItem( changes, "p" );
+                    if( cJSON_IsString( key ) ){
+                        ESP_LOGI( TAG, "Color: %s", key->valuestring );
+                        LED::showColor( (CRGB)hex2bin( key->valuestring ) );
+                    }
+
+                    // Changed Active Color
+                    key = cJSON_GetObjectItem( changes, "a" );
+                    if( cJSON_IsNumber( key ) ){
+                        ESP_LOGI( TAG, "Color: %d", (uint8_t)key->valuedouble );
+                        LED::setActiveColor( key->valuedouble );
+                    }
+
+                    // Changed Color Palette
+                    key = cJSON_GetObjectItem( changes, "c" );
+                    if( cJSON_IsObject( key ) ){
+                        index = cJSON_GetObjectItem( key, "i" );
+                        value = cJSON_GetObjectItem( key, "c" );
+                        if( cJSON_IsNumber( index ) && cJSON_IsString( value ) ){
+                            LED::setColor(
+                                index->valuedouble,
+                                (CRGB)hex2bin( value->valuestring )
+                            );
+                        }
+                    } else {
+                        cJSON_ArrayForEach( obj, key ){
+                            index = cJSON_GetObjectItem( obj, "i" );
+                            value = cJSON_GetObjectItem( obj, "c" );
+                            if( cJSON_IsNumber( index ) && cJSON_IsString( value ) ){
+                                LED::setColor(
+                                    index->valuedouble,
+                                    (CRGB)hex2bin( value->valuestring )
+                                );
+                            }
+                        }
+                    }
+
+                    // Changed Active Mode
+                    key = cJSON_GetObjectItem( changes, "q" );
+                    if( cJSON_IsNumber( key ) ){
+                        ESP_LOGI( TAG, "Mode: %d", (uint8_t)key->valuedouble );
+                        LED::setActiveMode( key->valuedouble );
+                    }
+
+                    cJSON_Delete( changes );
+
+                    ws_server_send_text_all_from_callback( msg, len );
                 }
                 break;
             case WEBSOCKET_BIN:
@@ -292,11 +333,11 @@ public:
         {
             if(!( tmp = cJSON_CreateArray() )) goto json_build_error;
             cJSON_AddItemToObject( root, "m", tmp );
-            char* modes[] = {
+            const char* modes[] = {
                 "Off",
                 "Static Color",
                 "HSV Fade",
-                "Random Fade"
+                "Better Fade"
             };
             for( int i = 0; i < sizeof(modes) / sizeof(char*); ++i ){
                 if(!( tmp2 = cJSON_CreateObject() )) goto json_build_error;
@@ -315,8 +356,11 @@ public:
         json = cJSON_Print( root );
         ws_server_send_text_client_from_callback( num, json, strlen(json) );
 
+        cJSON_Delete( root );
         return;
+
 json_build_error:
+        cJSON_Delete( root );
         ESP_LOGE( TAG, "JSON generation error." );
     }
 };
@@ -326,8 +370,8 @@ HTTPServerPrivate* HTTPServer::d = new HTTPServerPrivate;
 
 void HTTPServer::start(){
     ws_server_start();
-    xTaskCreate( &d->http_listen_task, "http_listen_task", 3000, NULL, 9, NULL );
-    xTaskCreate( &d->http_connection_task, "http_connection_task", 4000, NULL, 6, NULL );
+    xTaskCreatePinnedToCore( &d->http_listen_task, "http_listen_task", 3000, NULL, 9, NULL, 0 );
+    xTaskCreatePinnedToCore( &d->http_connection_task, "http_connection_task", 4000, NULL, 6, NULL, 0 );
 }
 
 void HTTPServer::stop(){

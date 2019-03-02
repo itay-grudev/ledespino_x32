@@ -179,5 +179,4 @@ void app_main()
      * LED Program
      */
     LED::setup();
-    LED::run();
 }
