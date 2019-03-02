@@ -161,7 +161,7 @@ void LED::setActiveMode( uint8_t index ){
                 if( active_mode != index ) d->hsv_fade_interrupt = true;
                 vTaskResume( d->hsv_fade_task_handle );
             } else {
-                xTaskCreatePinnedToCore( &d->hsv_fade_task, "hsv_fade_task", 470, NULL, 31, &d->hsv_fade_task_handle, 1 );
+                xTaskCreatePinnedToCore( &d->hsv_fade_task, "hsv_fade_task", 500, NULL, 31, &d->hsv_fade_task_handle, 1 );
             }
             break;
         case 3:
@@ -169,7 +169,7 @@ void LED::setActiveMode( uint8_t index ){
                 if( active_mode != index ) d->better_fade_interrupt = true;
                 vTaskResume( d->better_fade_task_handle );
             } else {
-                xTaskCreatePinnedToCore( &d->better_fade_task, "better_fade_task", 470, NULL, 31, &d->better_fade_task_handle, 1 );
+                xTaskCreatePinnedToCore( &d->better_fade_task, "better_fade_task", 500, NULL, 31, &d->better_fade_task_handle, 1 );
             }
             break;
     }
