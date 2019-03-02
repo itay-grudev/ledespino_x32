@@ -21,7 +21,7 @@ extern "C" {
 #include "led.hpp"
 #include "functions.hpp"
 #include "constants.hpp"
-#include "ui_web_server.hpp"
+#include "http_server.hpp"
 
 // API call return code. Global for convinience only.
 esp_err_t err;
@@ -48,13 +48,13 @@ static esp_err_t wifi_event_handler( void *ctx, system_event_t *event ){
                 "SYS", "IP Address: '%s'",
                 ip4addr_ntoa( &event->event_info.got_ip.ip_info.ip )
             );
-            UIWebServer::start();
+            HTTPServer::start();
             break;
 
         case SYSTEM_EVENT_STA_DISCONNECTED:
             ESP_LOGW( "SYS", "WiFi Disconnected. Attempting reconnect." );
             ESP_ERROR_CHECK( esp_wifi_connect() );
-            UIWebServer::stop();
+            HTTPServer::stop();
             break;
 
         default:
