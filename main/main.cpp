@@ -26,6 +26,9 @@ extern "C" {
 // API call return code. Global for convinience only.
 esp_err_t err;
 
+// Current WiFi mode
+WiFiMode wifi_mode;
+
 // Current WiFi configuration
 wifi_config_t wifi_config = {};
 
@@ -114,13 +117,11 @@ void app_main()
     /**
      * WiFi Initialization
      */
-    WiFiMode mode;
-
     #ifdef CONFIG_DEFAULT_WIFI_MODE_AP
-        err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::AccessPoint );
+        err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&wifi_mode, WiFiMode::AccessPoint );
     #else
         #ifdef CONFIG_DEFAULT_WIFI_MODE_STA
-            err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&mode, WiFiMode::Station );
+            err = nvs_get_set_default_u8( system_nvs, "wifi_mode", (uint8_t*)&wifi_mode, WiFiMode::Station );
         #endif
     #endif
     ESP_ERROR_CHECK( err );
@@ -151,7 +152,7 @@ void app_main()
     err = nvs_get_set_default_str( system_nvs, "wifi_pass", wifi_pass, CONFIG_WIFI_PASSWORD );
     ESP_ERROR_CHECK( err );
 
-    switch( mode ){
+    switch( wifi_mode ){
         case WiFiMode::AccessPoint:
             ESP_LOGW( "SYS", "WiFi Mode: AP" );
             // TODO:
