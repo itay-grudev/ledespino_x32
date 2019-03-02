@@ -1,5 +1,5 @@
-#ifndef UI_WEB_SERVER
-#define UI_WEB_SERVER
+#ifndef UI_WEB_SERVER_H
+#define UI_WEB_SERVER_H
 
 class UIWebServerPrivate;
 
@@ -12,4 +12,4 @@ private:
     static UIWebServerPrivate *d;
 };
 
-#endif // UI_WEB_SERVER
+#endif // UI_WEB_SERVER_H
