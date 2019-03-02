@@ -7,7 +7,7 @@ public:
     CRGB *leds;
 };
 
-uint8_t LED::mode = 0;
+uint8_t LED::active_mode = 0;
 uint8_t LED::active_color = 0;
 nvs_handle LED::led_nvs = NULL;
 LEDPrivate* LED::d = new LEDPrivate;

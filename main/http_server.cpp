@@ -12,14 +12,17 @@
 #include <esp_event_loop.h>
 #include <nvs_flash.h>
 #include <driver/ledc.h>
+#include <cJSON.h>
 
 #include <string.h>
 
 #include <websocket_server.h>
 
 #include "led.hpp"
+#include "constants.hpp"
 #include "functions.hpp"
 
+extern WiFiMode wifi_mode;
 extern wifi_config_t wifi_config;
 extern nvs_handle system_nvs;
 
@@ -225,57 +228,96 @@ public:
 
     static void websocket_send_status( uint8_t num ){
         const static char* TAG = "WEBS";
-        const char json[] = "{\"a\":\"%d\",\"c\": [\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\",\"%02x%02x%02x\"],\"m\":\"%d\",\"n\":\"%s\",\"h\":\"%s\",\"s\":\"%s\",\"w\":\"%d\"}";
-        char temp[sizeof(json) + 160];
-
-        // Currently active color (0-8) from presets
-        uint8_t a;
         esp_err_t err;
-        err = nvs_get_u8( LED::led_nvs, "a", &a );
-        ESP_ERROR_CHECK( err );
 
-        // Stores the colours loaded from NVS
-        uint8_t c[8][3];
+        // Root JSON node
+        cJSON *root, *tmp, *tmp2, *tmp3;
+        char *device_name = NULL, *hostname = NULL, *json;
 
-        // Get colours from NVS
-        size_t rgb_size = 3;
-        char key[2] = "0";
-        for( uint8_t i = 0; i < 8; ++i ){
-            key[0] = (char)(i + 48);
-            err = nvs_get_blob( LED::led_nvs, key, &c[i], &rgb_size );
-            ESP_ERROR_CHECK( err );
+        if(!( root = cJSON_CreateObject() )) goto json_build_error;
+
+        // WiFi Mode
+        if(!( tmp = cJSON_CreateNumber( wifi_mode ) )) goto json_build_error;
+        cJSON_AddItemToObject( root, "w", tmp );
+
+        // WiFi SSID
+        if( wifi_mode == WiFiMode::Station ){
+            if(!( tmp = cJSON_CreateString( (const char*)wifi_config.sta.ssid ) ))
+                goto json_build_error;
+        } else {
+            if(!( tmp = cJSON_CreateString( (const char*)wifi_config.ap.ssid ) ))
+                goto json_build_error;
         }
+        cJSON_AddItemToObject( root, "s", tmp );
 
-        // Load the device name from NVS
-        char *device_name = NULL, *hostname = NULL;
-        err = nvs_get_str2( system_nvs, "device_name", device_name );
-        ESP_ERROR_CHECK( err );
+        // Device hostname
         err = nvs_get_str2( system_nvs, "hostname", hostname );
         ESP_ERROR_CHECK( err );
+        if(!( tmp = cJSON_CreateString( hostname ) )) goto json_build_error;
+        cJSON_AddItemToObject( root, "h", tmp );
 
-        snprintf(
-            temp,
-            sizeof(json) + 8 * 6 + 129,
-            json,
-            a,
-            c[0][0], c[0][1], c[0][2],
-            c[1][0], c[1][1], c[1][2],
-            c[2][0], c[2][1], c[2][2],
-            c[3][0], c[3][1], c[3][2],
-            c[4][0], c[4][1], c[4][2],
-            c[5][0], c[5][1], c[5][2],
-            c[6][0], c[6][1], c[6][2],
-            c[7][0], c[7][1], c[7][2],
-            LED::mode,
-            device_name,
-            hostname,
-            wifi_config.sta.ssid,
-            0
-        );
+        // Device name
+        err = nvs_get_str2( system_nvs, "device_name", device_name );
+        ESP_ERROR_CHECK( err );
+        if(!( tmp = cJSON_CreateString( device_name ) )) goto json_build_error;
+        cJSON_AddItemToObject( root, "n", tmp );
 
-        if( ! ws_server_send_text_client_from_callback( num, temp, strlen( temp ) ) ){
-            ESP_LOGE( TAG, "Unable to send message." );
+        // Color palette
+        if(!( tmp = cJSON_CreateArray() )) goto json_build_error;
+        cJSON_AddItemToObject( root, "c", tmp );
+        {
+            size_t rgb_size = 3;
+            char key[2] = "0";
+            uint8_t rgb[3];
+            for( uint8_t i = 0; i < 8; ++i ){
+                key[0] = (char)(i + 48);
+                err = nvs_get_blob( LED::led_nvs, key, &rgb, &rgb_size );
+                ESP_ERROR_CHECK( err );
+                if(!( tmp2 = cJSON_CreateObject() )) goto json_build_error;
+                cJSON_AddItemToArray( tmp, tmp2 );
+                if(!( tmp3 = cJSON_CreateNumber( i ) )) goto json_build_error;
+                cJSON_AddItemToObject( tmp2, "i", tmp3 );
+                char hex[7];
+                snprintf( hex, 7, "%02X%02X%02X", rgb[0], rgb[1], rgb[2] );
+                if(!( tmp3 = cJSON_CreateString( hex ) )) goto json_build_error;
+                cJSON_AddItemToObject( tmp2, "c", tmp3 );
+            }
         }
+
+        // Active color index
+        if(!( tmp = cJSON_CreateNumber( wifi_mode ) )) goto json_build_error;
+        cJSON_AddItemToObject( root, "a", tmp );
+
+        // List of available modes
+        {
+            if(!( tmp = cJSON_CreateArray() )) goto json_build_error;
+            cJSON_AddItemToObject( root, "m", tmp );
+            char* modes[] = {
+                "Off",
+                "Static Color",
+                "HSV Fade",
+                "Random Fade"
+            };
+            for( int i = 0; i < sizeof(modes) / sizeof(char*); ++i ){
+                if(!( tmp2 = cJSON_CreateObject() )) goto json_build_error;
+                cJSON_AddItemToArray( tmp, tmp2 );
+                if(!( tmp3 = cJSON_CreateNumber( i ) )) goto json_build_error;
+                cJSON_AddItemToObject( tmp2, "i", tmp3 );
+                if(!( tmp3 = cJSON_CreateString( modes[i] ) )) goto json_build_error;
+                cJSON_AddItemToObject( tmp2, "n", tmp3 );
+            }
+        }
+
+        // Active mode
+        if(!( tmp = cJSON_CreateNumber( LED::active_mode ) )) goto json_build_error;
+        cJSON_AddItemToObject( root, "q", tmp );
+
+        json = cJSON_Print( root );
+        ws_server_send_text_client_from_callback( num, json, strlen(json) );
+
+        return;
+json_build_error:
+        ESP_LOGE( TAG, "JSON generation error." );
     }
 };
 
