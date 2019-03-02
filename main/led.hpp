@@ -12,6 +12,9 @@ public:
     static void set( CRGB );
     static void run();
 
+    static uint8_t mode;
+    static uint8_t active_color;
+
     static nvs_handle led_nvs;
 private:
     static LEDPrivate *d;
