@@ -2,6 +2,8 @@
 
 #include <esp_ipc.h>
 
+#include "hsluv/src/hsluv.h"
+
 class LEDPrivate {
 public:
     static CRGB *leds;
@@ -38,28 +40,46 @@ hsv_fade_start:
     static TaskHandle_t better_fade_task_handle;
     static bool better_fade_interrupt;
     static void better_fade_task( void* pvParameters ){
-        CHSV hsv = CHSV( 0, 255, 255 );
-
+        double h, s, l, r, g, b;
+        const double dh = 0.5, ds = 0.15;
+        const int init_step = 2000 / 100 / ds - 30;
+        const int fade_step = 10000 / 360 / dh - 30;
 better_fade_start:
         better_fade_interrupt = false;
 
-        // Move to the red
-        while( leds[0].r < 255 || leds[0].g > 0 || leds[0].b > 0 ){
-            if( leds[0].r < 255 ) ++leds[0].r;
-            if( leds[0].g > 0 ) --leds[0].g;
-            if( leds[0].b > 0 ) --leds[0].b;
-            FastLED.show();
-            vTaskDelay( 20 / portTICK_PERIOD_MS );
-        }
+        // Move to the closes HSLub fade color
+        r = (double)leds[0].r / 255;
+        g = (double)leds[0].g / 255;
+        b = (double)leds[0].b / 255;
+        // ESP_LOGI("RGBP", "%f %f %f", r, g, b);
+        rgb2hsluv( r, g, b, &h,  &s,  &l );
 
-        // Animate HSV
+        // Move to the red
+        while( s < 100 || 50 - ds >= l || l >= 50 + ds ){
+            if( better_fade_interrupt ) goto better_fade_start;
+            if( s < 100 ) s += ds;
+            if( l < 50 - ds ) l += ds;
+            if( l > 50 + ds ) l -= ds;
+            hsluv2rgb( h, s, l, &r, &g, &b );
+            leds[0].r = (uint8_t)(r * 255);
+            leds[0].g = (uint8_t)(g * 255);
+            leds[0].b = (uint8_t)(b * 255);
+            FastLED.show();
+            vTaskDelay( init_step / portTICK_PERIOD_MS );
+        }
+        s = 100;
+        l = 50;
+
+        // Animate HSLuv
         while( true ){
-            for( hsv.h = 0 ;; ++hsv.h ){
+            for( h = 0 ; h <= 360; h += 0.5 ){
                 if( better_fade_interrupt ) goto better_fade_start;
-                hsv2rgb_rainbow( hsv, leds[0] );
-                // ESP_LOGI("FADE", "%d %d %d", leds[0].r, leds[0].g, leds[0].b);
+                hsluv2rgb( h, s, l, &r, &g, &b );
+                leds[0].r = (uint8_t)(r * 255);
+                leds[0].g = (uint8_t)(g * 255);
+                leds[0].b = (uint8_t)(b * 255);
                 FastLED.show();
-                vTaskDelay( 90 / portTICK_PERIOD_MS );
+                vTaskDelay( fade_step / portTICK_PERIOD_MS );
             }
         }
     }
@@ -169,7 +189,7 @@ void LED::setActiveMode( uint8_t index ){
                 if( active_mode != index ) d->better_fade_interrupt = true;
                 vTaskResume( d->better_fade_task_handle );
             } else {
-                xTaskCreatePinnedToCore( &d->better_fade_task, "better_fade_task", 500, NULL, 31, &d->better_fade_task_handle, 1 );
+                xTaskCreatePinnedToCore( &d->better_fade_task, "better_fade_task", 2000, NULL, 31, &d->better_fade_task_handle, 1 );
             }
             break;
     }
