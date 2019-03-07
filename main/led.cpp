@@ -40,7 +40,6 @@ hsv_fade_start:
     static void better_fade_task( void* pvParameters ){
         CRGB colors[] = {
             CRGB::Red,
-            CRGB::Yellow,
             CRGB( 235, 173, 42 ), // True yellow
             CRGB::Teal,
             CRGB::Blue,
