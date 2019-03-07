@@ -2,8 +2,6 @@
 
 #include <esp_ipc.h>
 
-#include "hsluv/src/hsluv.h"
-
 class LEDPrivate {
 public:
     static CRGB *leds;
@@ -40,47 +38,64 @@ hsv_fade_start:
     static TaskHandle_t better_fade_task_handle;
     static bool better_fade_interrupt;
     static void better_fade_task( void* pvParameters ){
-        double h, s, l, r, g, b;
-        const double dh = 0.5, ds = 0.15;
-        const int init_step = 2000 / 100 / ds - 30;
-        const int fade_step = 10000 / 360 / dh - 30;
+        CRGB colors[] = {
+            CRGB::Red,
+            CRGB::Yellow,
+            CRGB( 235, 173, 42 ), // True yellow
+            CRGB::Teal,
+            CRGB::Blue,
+            CRGB::Purple,
+        };
+        uint8_t i;
+        double r, g, b;
+        double dr, dg, db; // Color component steps
 better_fade_start:
         better_fade_interrupt = false;
 
-        // Move to the closes HSLub fade color
-        r = (double)leds[0].r / 255;
-        g = (double)leds[0].g / 255;
-        b = (double)leds[0].b / 255;
-        // ESP_LOGI("RGBP", "%f %f %f", r, g, b);
-        rgb2hsluv( r, g, b, &h,  &s,  &l );
+        r = leds[0].r;
+        g = leds[0].g;
+        b = leds[0].b;
+        i = uint8_t(0) - 1;
+        // TODO: find closest target color based on active color delta
 
-        // Move to the red
-        while( s < 100 || 50 - ds >= l || l >= 50 + ds ){
-            if( better_fade_interrupt ) goto better_fade_start;
-            if( s < 100 ) s += ds;
-            if( l < 50 - ds ) l += ds;
-            if( l > 50 + ds ) l -= ds;
-            hsluv2rgb( h, s, l, &r, &g, &b );
-            leds[0].r = (uint8_t)(r * 255);
-            leds[0].g = (uint8_t)(g * 255);
-            leds[0].b = (uint8_t)(b * 255);
-            FastLED.show();
-            vTaskDelay( init_step / portTICK_PERIOD_MS );
-        }
-        s = 100;
-        l = 50;
+        goto better_fade_start_color_init;
 
-        // Animate HSLuv
         while( true ){
-            for( h = 0 ; h <= 360; h += 0.5 ){
-                if( better_fade_interrupt ) goto better_fade_start;
-                hsluv2rgb( h, s, l, &r, &g, &b );
-                leds[0].r = (uint8_t)(r * 255);
-                leds[0].g = (uint8_t)(g * 255);
-                leds[0].b = (uint8_t)(b * 255);
-                FastLED.show();
-                vTaskDelay( fade_step / portTICK_PERIOD_MS );
+            if( better_fade_interrupt ) goto better_fade_start;
+
+            // Color target achieved
+            if(
+                (uint8_t)r == colors[i].r &&
+                (uint8_t)g == colors[i].g &&
+                (uint8_t)b == colors[i].b
+            ) {
+better_fade_start_color_init:
+                // Loop the current color
+                if( ++i >= sizeof( colors ) / sizeof( colors[0] ) - 1 ) i = 0;
+                // TODO dr, dg, db
+                if( r < colors[i].r ) dr = 0.5;
+                else if( r > colors[i].r ) dr = -0.5;
+                else dr = 0;
+                if( g < colors[i].g ) dg = 0.5;
+                else if( g > colors[i].g ) dg = -0.5;
+                else dg = 0;
+                if( b < colors[i].b ) db = 0.5;
+                else if( b > colors[i].b ) db = -0.5;
+                else db = 0;
             }
+
+            // Move current color
+            // 255 - 254.5 = 0.5 >= 0.5
+            if( fabs( r - colors[i].r ) >= fabs( dr ) ) r += dr;
+            if( fabs( g - colors[i].g ) >= fabs( dg ) ) g += dg;
+            if( fabs( b - colors[i].b ) >= fabs( db ) ) b += db;
+
+            // Display current color
+            leds[0].r = r;
+            leds[0].g = g;
+            leds[0].b = b;
+            FastLED.show();
+            vTaskDelay( 10 / portTICK_PERIOD_MS );
         }
     }
 };

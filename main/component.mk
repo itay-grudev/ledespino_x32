@@ -8,5 +8,3 @@
 
 CFLAGS += -Wall
 CPPFLAGS += -Wall
-
-COMPONENT_SRCDIRS := . hsluv/src

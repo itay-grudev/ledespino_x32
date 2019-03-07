@@ -7,6 +7,3 @@
 [submodule "components/fastled"]
 	path = components/fastled
 	url = https://github.com/FastLED/FastLED.git
-[submodule "main/hsluv"]
-	path = main/hsluv
-	url = https://github.com/hsluv/hsluv-c.git
